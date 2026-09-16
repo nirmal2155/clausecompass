@@ -72,13 +72,13 @@ export default function RootLayout({
                 <GitCompare className="w-4 h-4 text-slate-500" />
                 <span>Compare</span>
               </Link>
-              <a
-                href="#statutes-modal"
-                className="hidden md:flex px-3 py-2 text-slate-700 hover:text-blue-700 hover:bg-slate-100 rounded-lg transition-colors items-center space-x-1.5"
+              <Link
+                href="/trust"
+                className="px-3 py-2 text-slate-700 hover:text-blue-700 hover:bg-slate-100 rounded-lg transition-colors flex items-center space-x-1.5"
               >
-                <BookOpen className="w-4 h-4 text-slate-500" />
-                <span>Statute Corpus</span>
-              </a>
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Trust &amp; Evals</span>
+              </Link>
               <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
               <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-mono text-slate-600 border border-slate-200">
                 <Cpu className="w-3.5 h-3.5 text-slate-500" />

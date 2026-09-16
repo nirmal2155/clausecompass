@@ -139,6 +139,88 @@ export const GuardrailResultSchema = z.object({
 
 export type GuardrailResult = z.infer<typeof GuardrailResultSchema>;
 
+export const SilenceGapSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["covered", "partial", "absent"]),
+  proofClauseId: z.string().nullable().default(null),
+  proofSpan: z.string().default(""),
+  consequence: z.string(),
+  askAbout: z.string(),
+  statuteHint: z.string().optional(),
+});
+
+export type SilenceGap = z.infer<typeof SilenceGapSchema>;
+
+export const RedlineProposalSchema = z.object({
+  proposedText: z.string(),
+  whatChanged: z.array(z.string()),
+  likelyPushback: z.string(),
+  fallback: z.string(),
+  caveat: z.string(),
+});
+
+export type RedlineProposal = z.infer<typeof RedlineProposalSchema>;
+
+export const ScenarioStepSchema = z.object({
+  order: z.number(),
+  whatHappens: z.string(),
+  clauseId: z.string(),
+  quotedSpan: z.string(),
+  amount: z.string().nullable(),
+  timing: z.string().nullable(),
+});
+
+export type ScenarioStep = z.infer<typeof ScenarioStepSchema>;
+
+export const ScenarioResultSchema = z.object({
+  steps: z.array(ScenarioStepSchema),
+  moneyTotal: z
+    .object({
+      stated: z.string(),
+      workings: z.string(),
+    })
+    .nullable(),
+  silences: z.array(z.string()),
+  caveat: z.string(),
+});
+
+export type ScenarioResult = z.infer<typeof ScenarioResultSchema>;
+
+export const EvalCaseSchema = z.object({
+  id: z.string(),
+  type: z.enum(["answerable", "unanswerable", "boundary", "injection", "gap"]),
+  doc: z.string(),
+  q: z.string(),
+  expect: z.record(z.any()),
+  result: z
+    .object({
+      passed: z.boolean(),
+      detail: z.string(),
+      latencyMs: z.number(),
+    })
+    .optional(),
+});
+
+export type EvalCase = z.infer<typeof EvalCaseSchema>;
+
+export const EvalSummarySchema = z.object({
+  totalCases: z.number(),
+  passedCases: z.number(),
+  citationVerificationRate: z.number(),
+  refusalAccuracy: z.number(),
+  falseRefusalRate: z.number(),
+  guardrailCatchRate: z.number(),
+  injectionFlagRate: z.number(),
+  severityHighDistribution: z.number(),
+  p95LatencyMs: z.number(),
+  lastEvaluated: z.string(),
+  promptVersion: z.string(),
+  model: z.string(),
+});
+
+export type EvalSummary = z.infer<typeof EvalSummarySchema>;
+
 export interface DocumentAnalysisState {
   id: string;
   filename: string;
@@ -148,7 +230,9 @@ export interface DocumentAnalysisState {
   rawText: string;
   clauses: Clause[];
   findings: RiskFinding[];
+  gaps?: SilenceGap[];
   createdAt: string;
   piiRedacted: boolean;
   redactionMap?: Record<string, string>;
 }
+

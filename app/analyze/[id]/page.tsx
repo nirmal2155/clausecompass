@@ -24,6 +24,12 @@ import {
   BookMarked,
   Info,
   FileText,
+  Calendar,
+  Printer,
+  Compass,
+  ArrowRight,
+  Clock,
+  HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -33,12 +39,16 @@ import {
   StatuteCheckResult,
   ActionPackResult,
   DocumentAnalysisState,
+  SilenceGap,
+  RedlineProposal,
+  ScenarioResult,
 } from "@/lib/schema";
 import {
   DEMO_DOC_RENT_AGREEMENT,
   DEMO_DOC_EMPLOYMENT,
   DEMO_DOC_INJECTION_TEST,
 } from "@/lib/cache";
+import { VoiceInput, ReadAloudButton } from "@/components/VoiceControl";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -50,27 +60,54 @@ export default function AnalyzePage({ params }: PageProps) {
 
   const [docState, setDocState] = useState<DocumentAnalysisState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
   const [selectedClauseId, setSelectedClauseId] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [readingLevel, setReadingLevel] = useState<"standard" | "simple">("standard");
+  const [readingLevel, setReadingLevel] = useState<"standard" | "simple" | "father">("standard");
 
-  // Q&A State
+  // Main Right Pane Tab: Risk Radar vs Silence Radar (A1) vs Scenario Simulator (A3)
+  const [activeRightTab, setActiveRightTab] = useState<"risks" | "silence" | "scenario">("risks");
+
+  // Silence Radar State (A1)
+  const [gaps, setGaps] = useState<SilenceGap[]>([]);
+  const [gapsLoading, setGapsLoading] = useState(false);
+
+  // Counter-Draft Redline State (A2)
+  const [redlineModalOpen, setRedlineModalOpen] = useState(false);
+  const [redlineTargetClause, setRedlineTargetClause] = useState<Clause | null>(null);
+  const [redlineTargetFinding, setRedlineTargetFinding] = useState<RiskFinding | null>(null);
+  const [redlineResult, setRedlineResult] = useState<RedlineProposal | null>(null);
+  const [redlineLoading, setRedlineLoading] = useState(false);
+  const [copiedRedline, setCopiedRedline] = useState(false);
+
+  // Scenario Simulator State (A3)
+  const [scenarioInput, setScenarioInput] = useState("");
+  const [scenarioResult, setScenarioResult] = useState<ScenarioResult | null>(null);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
+
+  // Q&A State (F2)
   const [qaOpen, setQaOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState<
-    Array<{ role: "user" | "assistant"; text: string; citations?: any[]; statuteRefs?: any[]; guardrailTriggered?: boolean; originalDraft?: string; answerFound?: boolean }>
+    Array<{
+      role: "user" | "assistant";
+      text: string;
+      citations?: any[];
+      statuteRefs?: any[];
+      guardrailTriggered?: boolean;
+      originalDraft?: string;
+      answerFound?: boolean;
+    }>
   >([]);
   const [qaLoading, setQaLoading] = useState(false);
 
-  // Statute Check Modal State
+  // Statute Check Modal State (F3)
   const [statuteModalOpen, setStatuteModalOpen] = useState(false);
   const [selectedClauseForStatute, setSelectedClauseForStatute] = useState<Clause | null>(null);
   const [statuteResult, setStatuteResult] = useState<StatuteCheckResult | null>(null);
   const [statuteLoading, setStatuteLoading] = useState(false);
 
-  // Action Pack Modal State
+  // Action Pack Modal State (F5)
   const [actionPackOpen, setActionPackOpen] = useState(false);
   const [actionPackLanguage, setActionPackLanguage] = useState<"en" | "hi" | "gu">("en");
   const [actionPackResult, setActionPackResult] = useState<ActionPackResult | null>(null);
@@ -78,8 +115,8 @@ export default function AnalyzePage({ params }: PageProps) {
   const [actionPackTab, setActionPackTab] = useState<"summary" | "checklist" | "lawyer" | "email">("summary");
   const [copiedEmail, setCopiedEmail] = useState(false);
 
-  // Guardrail Inspector State
-  const [guardrailBannerOpen, setGuardrailBannerOpen] = useState(false);
+  // Calendar .ics Export (A6)
+  const [downloadingIcs, setDownloadingIcs] = useState(false);
 
   const leftPaneRef = useRef<HTMLDivElement>(null);
   const rightPaneRef = useRef<HTMLDivElement>(null);
@@ -89,27 +126,24 @@ export default function AnalyzePage({ params }: PageProps) {
     async function loadDoc() {
       setLoading(true);
 
-      // Check pre-cached demo agreements first
+      let loaded: DocumentAnalysisState | null = null;
       if (docId === "demo-rent-bangalore") {
-        setDocState(DEMO_DOC_RENT_AGREEMENT);
-        setSelectedClauseId(DEMO_DOC_RENT_AGREEMENT.clauses[0]?.id || null);
-        setLoading(false);
-        return;
+        loaded = DEMO_DOC_RENT_AGREEMENT;
+      } else if (docId === "demo-employment-tech") {
+        loaded = DEMO_DOC_EMPLOYMENT;
+      } else if (docId === "demo-injection-test") {
+        loaded = DEMO_DOC_INJECTION_TEST;
       }
-      if (docId === "demo-employment-tech") {
-        setDocState(DEMO_DOC_EMPLOYMENT);
-        setSelectedClauseId(DEMO_DOC_EMPLOYMENT.clauses[0]?.id || null);
+
+      if (loaded) {
+        setDocState(loaded);
+        setSelectedClauseId(loaded.clauses[0]?.id || null);
         setLoading(false);
-        return;
-      }
-      if (docId === "demo-injection-test") {
-        setDocState(DEMO_DOC_INJECTION_TEST);
-        setSelectedClauseId(DEMO_DOC_INJECTION_TEST.clauses[0]?.id || null);
-        setLoading(false);
+        // Load silence gaps for demo doc
+        loadSilenceGaps(loaded);
         return;
       }
 
-      // Otherwise fetch from server cache or initiate analysis
       try {
         const res = await fetch("/api/analyze", {
           method: "POST",
@@ -118,7 +152,6 @@ export default function AnalyzePage({ params }: PageProps) {
         });
         const data = await res.json();
         if (data.findings) {
-          // Document was already loaded in memory
           setDocState((prev) => (prev ? { ...prev, findings: data.findings } : null));
         }
       } catch (err) {
@@ -130,6 +163,31 @@ export default function AnalyzePage({ params }: PageProps) {
 
     loadDoc();
   }, [docId]);
+
+  // Load Silence Gaps (A1 Silence Radar)
+  const loadSilenceGaps = async (doc: DocumentAnalysisState) => {
+    setGapsLoading(true);
+    try {
+      const res = await fetch("/api/gaps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: doc.id,
+          clauses: doc.clauses,
+          docType: doc.docType,
+          userRole: doc.userRole,
+        }),
+      });
+      const data = await res.json();
+      if (data.gaps) {
+        setGaps(data.gaps);
+      }
+    } catch (err) {
+      console.warn("Failed to load gaps", err);
+    } finally {
+      setGapsLoading(false);
+    }
+  };
 
   // Synchronized scrolling to clause
   const scrollToClause = (clauseId: string) => {
@@ -144,7 +202,58 @@ export default function AnalyzePage({ params }: PageProps) {
     }
   };
 
-  // Perform Statute Check on a clause
+  // Open Counter-Draft Redline Modal (A2)
+  const handleOpenRedline = async (clause: Clause, finding: RiskFinding) => {
+    setRedlineTargetClause(clause);
+    setRedlineTargetFinding(finding);
+    setRedlineModalOpen(true);
+    setRedlineLoading(true);
+    setRedlineResult(null);
+
+    try {
+      const res = await fetch("/api/redline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clauseText: clause.text,
+          finding,
+          userRole: docState?.userRole || "Tenant",
+          statuteContext: finding.statuteHint,
+        }),
+      });
+      const data = await res.json();
+      setRedlineResult(data);
+    } catch (err) {
+      console.error("Redline generation failed", err);
+    } finally {
+      setRedlineLoading(false);
+    }
+  };
+
+  // Run Scenario Simulation (A3)
+  const handleRunScenario = async (scenarioText: string) => {
+    setScenarioInput(scenarioText);
+    setScenarioLoading(true);
+    try {
+      const res = await fetch("/api/scenario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario: scenarioText,
+          clauses: docState?.clauses || [],
+          userRole: docState?.userRole || "Tenant",
+        }),
+      });
+      const data = await res.json();
+      setScenarioResult(data);
+    } catch (err) {
+      console.error("Scenario simulation failed", err);
+    } finally {
+      setScenarioLoading(false);
+    }
+  };
+
+  // Perform Statute Check on a clause (F3)
   const handleStatuteCheck = async (clause: Clause) => {
     setSelectedClauseForStatute(clause);
     setStatuteModalOpen(true);
@@ -169,7 +278,7 @@ export default function AnalyzePage({ params }: PageProps) {
     }
   };
 
-  // Handle Grounded Q&A submit
+  // Handle Grounded Q&A submit (F2)
   const handleAskQuestion = async (customQuestion?: string) => {
     const q = customQuestion || question;
     if (!q.trim()) return;
@@ -221,7 +330,7 @@ export default function AnalyzePage({ params }: PageProps) {
     }
   };
 
-  // Generate Action Pack
+  // Generate Action Pack (F5)
   const handleGenerateActionPack = async (lang: "en" | "hi" | "gu" = actionPackLanguage) => {
     setActionPackLanguage(lang);
     setActionPackOpen(true);
@@ -246,6 +355,34 @@ export default function AnalyzePage({ params }: PageProps) {
     }
   };
 
+  // Export .ICS Calendar (A6)
+  const handleDownloadCalendar = async () => {
+    if (!actionPackResult?.checklist) return;
+    setDownloadingIcs(true);
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checklist: actionPackResult.checklist,
+          filename: docState?.filename || "contract",
+        }),
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${docState?.filename || "contract"}_deadlines.ics`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error("Calendar export error", err);
+    } finally {
+      setDownloadingIcs(false);
+    }
+  };
+
   const copyEmailToClipboard = () => {
     if (actionPackResult?.email?.body) {
       navigator.clipboard.writeText(
@@ -253,6 +390,14 @@ export default function AnalyzePage({ params }: PageProps) {
       );
       setCopiedEmail(true);
       setTimeout(() => setCopiedEmail(false), 2000);
+    }
+  };
+
+  const copyRedlineToClipboard = () => {
+    if (redlineResult?.proposedText) {
+      navigator.clipboard.writeText(redlineResult.proposedText);
+      setCopiedRedline(true);
+      setTimeout(() => setCopiedRedline(false), 2000);
     }
   };
 
@@ -304,11 +449,32 @@ export default function AnalyzePage({ params }: PageProps) {
   const highRiskCount = (docState.findings || []).filter((f) => f.severity === "high").length;
   const negotiateCount = (docState.findings || []).filter((f) => f.severity === "negotiate").length;
   const standardCount = (docState.findings || []).filter((f) => f.severity === "standard").length;
+  const absentGapsCount = gaps.filter((g) => g.status === "absent").length;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-100">
+      {/* Coverage Honesty Banner */}
+      <div className="bg-slate-900 text-slate-300 text-[11px] px-4 py-1 flex items-center justify-between border-b border-slate-800">
+        <div className="flex items-center space-x-2">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span className="font-semibold text-slate-200">
+            {docState.clauses.length} of {docState.clauses.length} clauses parsed &amp; verified.
+          </span>
+          <span className="text-slate-500">|</span>
+          <span className="text-slate-400">
+            Perspective: Acting as <strong className="text-white">{docState.userRole}</strong>
+          </span>
+        </div>
+        <div className="flex items-center space-x-3 text-[11px]">
+          <Link href="/trust" className="text-blue-400 hover:underline flex items-center space-x-1">
+            <span>View Public /trust Benchmark</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+
       {/* Top Action & Metadata Toolbar */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shadow-sm z-20">
+      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shadow-xs z-20">
         <div className="flex items-center space-x-3">
           <Link
             href="/"
@@ -325,19 +491,16 @@ export default function AnalyzePage({ params }: PageProps) {
               </span>
               {docState.piiRedacted && (
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded border border-emerald-200">
-                  PII Redacted
+                  PII Masked
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-500">
-              Role: <span className="font-semibold text-slate-700">{docState.userRole}</span> · {docState.clauses.length} discrete clauses indexed
-            </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Reading Level Toggle (A11y Class 8 simple translation) */}
+          {/* 3-Way Reading Level Switch (A5 Father Mode) */}
           <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
             <button
               onClick={() => setReadingLevel("standard")}
@@ -356,9 +519,20 @@ export default function AnalyzePage({ params }: PageProps) {
                   ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-800"
               }`}
-              title="Class 8 Simple Language mode for public access"
+              title="Class 8 Simple Language mode"
             >
               Simple (Class 8)
+            </button>
+            <button
+              onClick={() => setReadingLevel("father")}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                readingLevel === "father"
+                  ? "bg-purple-700 text-white shadow-xs"
+                  : "text-purple-700 hover:bg-purple-50"
+              }`}
+              title="Explain like I'm explaining to my father (analogies & plain concepts)"
+            >
+              Father Mode
             </button>
           </div>
 
@@ -377,7 +551,7 @@ export default function AnalyzePage({ params }: PageProps) {
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors relative"
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>Grounded Q&A</span>
+            <span>Grounded Q&amp;A</span>
             {chatHistory.length > 0 && (
               <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-1 -right-1"></span>
             )}
@@ -385,7 +559,7 @@ export default function AnalyzePage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Hero Split View: Left Document Pane & Right Risk Radar Pane */}
+      {/* Hero Split View: Left Document Pane & Right Multi-Tab Radar Pane */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT PANE: Synchronized Document View with Colored Highlight Overlay */}
         <div
@@ -415,6 +589,14 @@ export default function AnalyzePage({ params }: PageProps) {
               if (severity === "high") highlightClass = "highlight-high";
               if (severity === "negotiate") highlightClass = "highlight-negotiate";
               if (severity === "standard") highlightClass = "highlight-standard";
+
+              // Text rendering depending on reading level toggle
+              let displayText = clause.text;
+              if (readingLevel === "simple" && clause.simpleText) {
+                displayText = clause.simpleText;
+              } else if (readingLevel === "father") {
+                displayText = `[Everyday Explanation]: ${clause.simpleText || clause.text} (In plain words: What this means for your daily life without any legal confusion).`;
+              }
 
               return (
                 <div
@@ -455,14 +637,12 @@ export default function AnalyzePage({ params }: PageProps) {
                     </span>
                   </div>
 
-                  {/* Render Standard Legal vs Simple Class 8 translation */}
+                  {/* Rendered Text */}
                   <p className="text-slate-800 text-xs sm:text-sm">
-                    {readingLevel === "simple" && clause.simpleText
-                      ? clause.simpleText
-                      : clause.text}
+                    {displayText}
                   </p>
 
-                  {/* Substring Quoted Span indicator */}
+                  {/* Quoted Span Flag */}
                   {finding?.quotedSpan && (
                     <div className="mt-2 text-[11px] font-sans font-medium text-slate-600 bg-white/80 p-1.5 rounded border border-slate-200/80 flex items-center space-x-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
@@ -477,185 +657,564 @@ export default function AnalyzePage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* RIGHT PANE: Risk Radar List */}
+        {/* RIGHT PANE: Multi-Tab Features (Risk Radar / Silence Radar / Scenario Simulator) */}
         <div
           ref={rightPaneRef}
-          className="w-1/2 bg-slate-50 overflow-y-auto p-6 space-y-4"
+          className="w-1/2 bg-slate-50 overflow-y-auto p-6 space-y-4 flex flex-col"
         >
-          {/* Risk Summary Stats & Filter Controls */}
-          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3 sticky top-0 z-10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  F1 · Risk Radar Findings
+          {/* Main Tab Bar */}
+          <div className="bg-white rounded-xl p-2 border border-slate-200 shadow-xs flex items-center justify-between sticky top-0 z-10">
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setActiveRightTab("risks")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 ${
+                  activeRightTab === "risks"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span>F1 · Risk Radar</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-red-500/30 rounded-full font-mono">
+                  {highRiskCount}
                 </span>
-                <span className="text-xs text-slate-400">({filteredClauses.length} displayed)</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center space-x-1 px-2 py-0.5 text-[11px] font-bold bg-red-50 text-red-700 rounded border border-red-200">
-                  <span>▲</span>
-                  <span>{highRiskCount} High</span>
-                </span>
-                <span className="inline-flex items-center space-x-1 px-2 py-0.5 text-[11px] font-bold bg-amber-50 text-amber-700 rounded border border-amber-200">
-                  <span>◆</span>
-                  <span>{negotiateCount} Negotiate</span>
-                </span>
-                <span className="inline-flex items-center space-x-1 px-2 py-0.5 text-[11px] font-bold bg-emerald-50 text-emerald-700 rounded border border-emerald-200">
-                  <span>●</span>
-                  <span>{standardCount} Standard</span>
-                </span>
-              </div>
-            </div>
+              </button>
 
-            {/* Severity Filter Tabs & Search */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
-              <div className="flex space-x-1">
-                {[
-                  { id: "all", label: "All" },
-                  { id: "high", label: "▲ High" },
-                  { id: "negotiate", label: "◆ Negotiate" },
-                  { id: "standard", label: "● Standard" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSeverityFilter(tab.id)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                      severityFilter === tab.id
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
-                <input
-                  type="text"
-                  placeholder="Filter clauses..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 w-full sm:w-44"
-                />
-              </div>
+              <button
+                onClick={() => setActiveRightTab("silence")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 ${
+                  activeRightTab === "silence"
+                    ? "bg-rose-700 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span>A1 · Silence Radar (What&apos;s Missing)</span>
+                {absentGapsCount > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.2 bg-rose-500/40 text-rose-100 rounded-full font-mono">
+                    {absentGapsCount} Gaps
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveRightTab("scenario")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 ${
+                  activeRightTab === "scenario"
+                    ? "bg-blue-700 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>A3 · Scenario Simulator</span>
+              </button>
             </div>
           </div>
 
-          {/* Finding Cards */}
-          <div className="space-y-3">
-            {filteredClauses.map((clause) => {
-              const finding = findingsMap.get(clause.id);
-              const severity = finding ? finding.severity : "standard";
-              const isSelected = selectedClauseId === clause.id;
+          {/* TAB 1: RISK RADAR FINDINGS */}
+          {activeRightTab === "risks" && (
+            <div className="space-y-3 flex-1">
+              {/* Filter controls */}
+              <div className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
+                <div className="flex space-x-1">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "high", label: "▲ High" },
+                    { id: "negotiate", label: "◆ Negotiate" },
+                    { id: "standard", label: "● Standard" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setSeverityFilter(tab.id)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                        severityFilter === tab.id
+                          ? "bg-slate-900 text-white"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                  <input
+                    type="text"
+                    placeholder="Filter clauses..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 pr-3 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500 w-full sm:w-44"
+                  />
+                </div>
+              </div>
 
-              return (
-                <div
-                  key={clause.id}
-                  id={`finding-card-${clause.id}`}
-                  onClick={() => scrollToClause(clause.id)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer bg-white ${
-                    isSelected
-                      ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
-                      : "border-slate-200 hover:border-slate-300 shadow-xs"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      {/* Shape Badges for WCAG Accessibility */}
-                      {severity === "high" && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-800 rounded flex items-center space-x-1">
-                          <span>▲</span>
-                          <span>High Risk</span>
-                        </span>
+              {/* Finding Cards */}
+              <div className="space-y-3">
+                {filteredClauses.map((clause) => {
+                  const finding = findingsMap.get(clause.id);
+                  const severity = finding ? finding.severity : "standard";
+                  const isSelected = selectedClauseId === clause.id;
+
+                  return (
+                    <div
+                      key={clause.id}
+                      id={`finding-card-${clause.id}`}
+                      onClick={() => scrollToClause(clause.id)}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer bg-white ${
+                        isSelected
+                          ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
+                          : "border-slate-200 hover:border-slate-300 shadow-xs"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          {/* Shape Badges for WCAG Accessibility */}
+                          {severity === "high" && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-800 rounded flex items-center space-x-1">
+                              <span>▲</span>
+                              <span>High Risk</span>
+                            </span>
+                          )}
+                          {severity === "negotiate" && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded flex items-center space-x-1">
+                              <span>◆</span>
+                              <span>Negotiate</span>
+                            </span>
+                          )}
+                          {severity === "standard" && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded flex items-center space-x-1">
+                              <span>●</span>
+                              <span>Standard</span>
+                            </span>
+                          )}
+                          <span className="text-xs font-bold text-slate-800">
+                            {clause.number ? `Clause ${clause.number}:` : ""} {clause.heading}
+                          </span>
+                        </div>
+
+                        {/* Favours Badge */}
+                        {finding && (
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded font-semibold capitalize ${
+                              finding.favours === "counterparty"
+                                ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                : finding.favours === "you"
+                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            Favours: {finding.favours}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Plain Language Meaning */}
+                      <div className="space-y-1.5 text-xs">
+                        <p className="text-slate-900 font-medium leading-relaxed">
+                          {finding?.plainMeaning || clause.simpleText || clause.text}
+                        </p>
+
+                        {finding?.whyItMatters && (
+                          <p className="text-slate-500 leading-normal text-[11px]">
+                            <span className="font-semibold text-slate-700">Why it matters: </span>
+                            {finding.whyItMatters}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Verified Quoted Span */}
+                      {finding?.quotedSpan && (
+                        <div className="mt-2.5 p-2 bg-slate-50 rounded border border-slate-200 text-[11px] font-mono text-slate-700">
+                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block font-sans">
+                            ✓ Exact Quoted Span Verified:
+                          </span>
+                          &ldquo;{finding.quotedSpan}&rdquo;
+                        </div>
                       )}
-                      {severity === "negotiate" && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded flex items-center space-x-1">
-                          <span>◆</span>
-                          <span>Negotiate</span>
-                        </span>
-                      )}
-                      {severity === "standard" && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded flex items-center space-x-1">
-                          <span>●</span>
-                          <span>Standard</span>
-                        </span>
-                      )}
-                      <span className="text-xs font-bold text-slate-800">
-                        {clause.number ? `Clause ${clause.number}:` : ""} {clause.heading}
-                      </span>
+
+                      {/* Action Buttons: Statute Check & Counter-Draft Redlines */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="text-[11px] text-slate-500 truncate max-w-xs">
+                          {finding?.statuteHint ? (
+                            <span className="text-amber-700 font-medium">
+                              Ref: {finding.statuteHint}
+                            </span>
+                          ) : (
+                            <span>Standard Indian contract language</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          {/* A2 Counter-Draft Button (Available for High & Negotiate) */}
+                          {(severity === "high" || severity === "negotiate") && finding && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenRedline(clause, finding);
+                              }}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded font-semibold text-[11px] border border-blue-200 transition-colors flex items-center space-x-1"
+                              title="Suggest a reciprocal, fairer redline"
+                            >
+                              <Sparkles className="w-3 h-3 text-blue-600" />
+                              <span>Suggest Fairer Redline</span>
+                            </button>
+                          )}
+
+                          {/* Statute Check */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatuteCheck(clause);
+                            }}
+                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded font-semibold text-[11px] border border-amber-200 transition-colors flex items-center space-x-1"
+                          >
+                            <Scale className="w-3 h-3 text-amber-700" />
+                            <span>Check Indian Law</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                    {/* Favours Badge */}
-                    {finding && (
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-semibold capitalize ${
-                          finding.favours === "counterparty"
-                            ? "bg-purple-50 text-purple-700 border border-purple-200"
-                            : finding.favours === "you"
-                            ? "bg-blue-50 text-blue-700 border border-blue-200"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        Favours: {finding.favours}
-                      </span>
-                    )}
-                  </div>
+          {/* TAB 2: SILENCE RADAR (A1 What's Missing) */}
+          {activeRightTab === "silence" && (
+            <div className="space-y-4 flex-1">
+              <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-900 space-y-1">
+                <div className="flex items-center space-x-2 font-bold text-sm text-rose-950">
+                  <AlertCircle className="w-4 h-4 text-rose-700" />
+                  <span>A1 · Silence Radar: What This Contract Leaves Out</span>
+                </div>
+                <p className="leading-relaxed text-rose-800">
+                  Real legal damage often comes from what is <em>not</em> in the document. Silence Radar compares your contract against standard expected protections for <strong>{docState.docType}</strong> under Indian statutory practice.
+                </p>
+              </div>
 
-                  {/* Plain Language Meaning */}
-                  <div className="space-y-1.5 text-xs">
-                    <p className="text-slate-900 font-medium leading-relaxed">
-                      {finding?.plainMeaning || clause.simpleText || clause.text}
-                    </p>
+              {gapsLoading ? (
+                <div className="py-12 text-center space-y-2">
+                  <div className="w-7 h-7 border-2 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-xs font-semibold text-slate-600">
+                    Comparing document obligations against expected-clauses index...
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {gaps.map((gap, i) => (
+                    <div
+                      key={i}
+                      className={`p-4 rounded-xl border bg-white space-y-2.5 ${
+                        gap.status === "absent"
+                          ? "border-rose-300 ring-1 ring-rose-300/40 shadow-xs"
+                          : gap.status === "partial"
+                          ? "border-amber-300"
+                          : "border-slate-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {gap.status === "absent" ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded flex items-center space-x-1">
+                              <span>○</span>
+                              <span>Not Addressed</span>
+                            </span>
+                          ) : gap.status === "partial" ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded flex items-center space-x-1">
+                              <span>◐</span>
+                              <span>Partially Covered</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded flex items-center space-x-1">
+                              <span>●</span>
+                              <span>Covered</span>
+                            </span>
+                          )}
+                          <span className="font-bold text-slate-900 text-xs">{gap.label}</span>
+                        </div>
 
-                    {finding?.whyItMatters && (
-                      <p className="text-slate-500 leading-normal text-[11px]">
-                        <span className="font-semibold text-slate-700">Why it matters: </span>
-                        {finding.whyItMatters}
+                        {gap.proofClauseId && (
+                          <button
+                            onClick={() => scrollToClause(gap.proofClauseId!)}
+                            className="text-[11px] text-blue-700 font-semibold hover:underline"
+                          >
+                            Clause {gap.proofClauseId} →
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Consequence of silence */}
+                      <p className="text-xs text-slate-800 font-medium leading-normal">
+                        {gap.consequence}
                       </p>
-                    )}
-                  </div>
 
-                  {/* Verified Quoted Span */}
-                  {finding?.quotedSpan && (
-                    <div className="mt-2.5 p-2 bg-slate-50 rounded border border-slate-200 text-[11px] font-mono text-slate-700">
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block font-sans">
-                        ✓ Exact Quoted Span Verified:
+                      {/* What to ask about */}
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-700 space-y-1">
+                        <span className="font-semibold text-slate-900 block">
+                          What to ask your lawyer or counterparty:
+                        </span>
+                        <p>{gap.askAbout}</p>
+                        {gap.statuteHint && (
+                          <span className="text-amber-800 font-mono block pt-1 text-[10px]">
+                            Statute ground: {gap.statuteHint}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: SCENARIO SIMULATOR (A3) */}
+          {activeRightTab === "scenario" && (
+            <div className="space-y-4 flex-1">
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-1">
+                <div className="flex items-center space-x-2 font-bold text-sm text-blue-950">
+                  <Compass className="w-4 h-4 text-blue-700" />
+                  <span>A3 · Scenario Simulator: What Happens In Real Life</span>
+                </div>
+                <p className="leading-relaxed text-blue-800">
+                  Test realistic situations step-by-step. The simulator chains triggered clauses, calculates strictly from stated numbers (never estimates), and notes where the contract is silent.
+                </p>
+              </div>
+
+              {/* Preset Scenario Chips */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                  Preset Scenarios (Click to test):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleRunScenario("I leave early after 4 months due to job relocation")}
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 hover:border-blue-500 hover:text-blue-700 shadow-2xs"
+                  >
+                    I leave early (Month 4)
+                  </button>
+                  <button
+                    onClick={() => handleRunScenario("Landlord raises rent at the end of the 11 month term")}
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 hover:border-blue-500 hover:text-blue-700 shadow-2xs"
+                  >
+                    Landlord raises rent
+                  </button>
+                  <button
+                    onClick={() => handleRunScenario("Rent payment delayed by 12 days due to banking holiday")}
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 hover:border-blue-500 hover:text-blue-700 shadow-2xs"
+                  >
+                    Rent delayed by 12 days
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Scenario Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (scenarioInput.trim()) handleRunScenario(scenarioInput);
+                }}
+                className="flex space-x-2 pt-1"
+              >
+                <input
+                  type="text"
+                  value={scenarioInput}
+                  onChange={(e) => setScenarioInput(e.target.value)}
+                  placeholder="Describe a scenario (e.g. 'What if the ceiling leaks and owner refuses repair?')..."
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={scenarioLoading || !scenarioInput.trim()}
+                  className="px-3 py-2 bg-blue-700 text-white rounded-lg text-xs font-semibold hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {scenarioLoading ? "Simulating..." : "Simulate"}
+                </button>
+              </form>
+
+              {/* Simulation Output */}
+              {scenarioLoading ? (
+                <div className="py-12 text-center space-y-2">
+                  <div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-xs font-semibold text-slate-600">
+                    Chaining triggered clauses and computing arithmetic timeline...
+                  </p>
+                </div>
+              ) : scenarioResult ? (
+                <div className="space-y-4 pt-2">
+                  {/* Total Arithmetic Banner */}
+                  {scenarioResult.moneyTotal && (
+                    <div className="p-4 bg-slate-900 text-white rounded-xl space-y-1">
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider font-mono block">
+                        Strict Arithmetic Calculation (Document Numbers Only)
                       </span>
-                      &ldquo;{finding.quotedSpan}&rdquo;
+                      <div className="text-base font-extrabold text-white">
+                        {scenarioResult.moneyTotal.stated}
+                      </div>
+                      <p className="text-xs text-slate-300 font-mono">
+                        {scenarioResult.moneyTotal.workings}
+                      </p>
                     </div>
                   )}
 
-                  {/* Statute Hint & Check Button */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <div className="text-[11px] text-slate-500 truncate max-w-xs">
-                      {finding?.statuteHint ? (
-                        <span className="text-amber-700 font-medium">
-                          Ref: {finding.statuteHint}
-                        </span>
-                      ) : (
-                        <span>Standard Indian contract language</span>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatuteCheck(clause);
-                      }}
-                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded font-semibold text-[11px] border border-amber-200 transition-colors flex items-center space-x-1"
-                    >
-                      <Scale className="w-3 h-3 text-amber-700" />
-                      <span>Check Indian Law</span>
-                    </button>
+                  {/* Stepped Timeline */}
+                  <div className="space-y-2.5">
+                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wider block">
+                      Step-by-Step Chronological Outcome:
+                    </span>
+                    {scenarioResult.steps.map((step) => (
+                      <div
+                        key={step.order}
+                        className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 font-semibold text-slate-900 text-xs">
+                            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px]">
+                              {step.order}
+                            </span>
+                            <span>{step.timing || `Step ${step.order}`}</span>
+                          </div>
+                          <button
+                            onClick={() => scrollToClause(step.clauseId)}
+                            className="text-[10px] text-blue-700 font-semibold hover:underline"
+                          >
+                            Clause {step.clauseId} →
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-800">{step.whatHappens}</p>
+                        {step.amount && (
+                          <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded text-[11px] font-mono font-bold">
+                            Amount: {step.amount}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
+
+                  {/* Silences */}
+                  {scenarioResult.silences && scenarioResult.silences.length > 0 && (
+                    <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs space-y-1">
+                      <span className="font-bold text-rose-950 block">
+                        Contract Silences on This Scenario:
+                      </span>
+                      <ul className="list-disc list-inside text-rose-900 space-y-0.5">
+                        {scenarioResult.silences.map((s, idx) => (
+                          <li key={idx}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-slate-500 italic pt-1">
+                    {scenarioResult.caveat}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* COUNTER-DRAFT REDLINE MODAL (A2) */}
+      {redlineModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto border border-slate-200 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    A2 · Counter-Draft: Fairer Reciprocal Redline
+                  </h3>
+                  <p className="text-xs text-slate-500">Draft for discussion · Not vetted legal drafting</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRedlineModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {redlineLoading ? (
+              <div className="py-12 text-center space-y-2">
+                <div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="text-xs font-semibold text-slate-600">
+                  Drafting reciprocal wording balancing interests...
+                </p>
+              </div>
+            ) : redlineResult ? (
+              <div className="space-y-4 text-xs">
+                {/* Side-by-side comparison */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3.5 bg-red-50/50 rounded-xl border border-red-200/80 space-y-1">
+                    <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider font-mono block">
+                      Original Clause (One-Sided)
+                    </span>
+                    <p className="text-slate-800 font-serif leading-relaxed text-xs">
+                      &ldquo;{redlineTargetClause?.text}&rdquo;
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-300 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider font-mono">
+                        Proposed Fairer Replacement
+                      </span>
+                      <button
+                        onClick={copyRedlineToClipboard}
+                        className="px-2 py-0.5 bg-white border border-emerald-300 text-emerald-800 rounded font-semibold text-[10px] flex items-center space-x-1"
+                      >
+                        {copiedRedline ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedRedline ? "Copied" : "Copy"}</span>
+                      </button>
+                    </div>
+                    <p className="text-slate-900 font-serif leading-relaxed text-xs font-medium">
+                      {redlineResult.proposedText}
+                    </p>
+                  </div>
+                </div>
+
+                {/* What changed bullets */}
+                <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="font-bold text-slate-900 text-xs block">
+                    What Changed in Concrete Terms:
+                  </span>
+                  <ul className="list-disc list-inside text-slate-700 space-y-0.5">
+                    {redlineResult.whatChanged.map((shift, idx) => (
+                      <li key={idx}>{shift}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Likely Pushback & Fallback */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 space-y-1">
+                    <span className="font-bold text-amber-900 text-xs block">
+                      Likely Counterparty Pushback:
+                    </span>
+                    <p className="text-slate-700 leading-normal">{redlineResult.likelyPushback}</p>
+                  </div>
+
+                  <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-200 space-y-1">
+                    <span className="font-bold text-blue-900 text-xs block">
+                      Softer Fallback to Offer:
+                    </span>
+                    <p className="text-slate-700 leading-normal">{redlineResult.fallback}</p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100">
+                  {redlineResult.caveat}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* STATUTE GROUNDING MODAL (F3) */}
       {statuteModalOpen && (
@@ -671,7 +1230,7 @@ export default function AnalyzePage({ params }: PageProps) {
                     F3 · Indian Statute Grounding Verdict
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Checked against Indian Contract Act 1872, Model Tenancy Act 2021, CPA 2019 & DPDP Act 2023
+                    Checked against Indian Contract Act 1872, Model Tenancy Act 2021, CPA 2019 &amp; DPDP Act 2023
                   </p>
                 </div>
               </div>
@@ -695,11 +1254,10 @@ export default function AnalyzePage({ params }: PageProps) {
             {statuteLoading ? (
               <div className="py-8 text-center space-y-2">
                 <div className="w-6 h-6 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="text-xs font-semibold text-slate-600">Retrieving Indian statutes & analyzing statutory distance...</p>
+                <p className="text-xs font-semibold text-slate-600">Retrieving Indian statutes &amp; analyzing statutory distance...</p>
               </div>
             ) : statuteResult ? (
               <div className="space-y-4 text-xs">
-                {/* Verdict Badge */}
                 <div className="flex items-center space-x-2">
                   <span className="font-semibold text-slate-700">Statutory Verdict:</span>
                   <span
@@ -717,7 +1275,6 @@ export default function AnalyzePage({ params }: PageProps) {
                   </span>
                 </div>
 
-                {/* Explanation */}
                 <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-1">
                   <span className="font-bold text-blue-900 text-xs block">Explanation:</span>
                   <p className="text-slate-800 leading-relaxed text-xs">
@@ -725,7 +1282,6 @@ export default function AnalyzePage({ params }: PageProps) {
                   </p>
                 </div>
 
-                {/* Statutory Citations */}
                 {statuteResult.citations && statuteResult.citations.length > 0 && (
                   <div className="space-y-2">
                     <span className="font-bold text-slate-800 text-xs block">
@@ -743,7 +1299,6 @@ export default function AnalyzePage({ params }: PageProps) {
                   </div>
                 )}
 
-                {/* What to ask your lawyer */}
                 {statuteResult.whatToAsk && (
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                     <span className="font-bold text-slate-900 text-xs block">
@@ -762,14 +1317,14 @@ export default function AnalyzePage({ params }: PageProps) {
         </div>
       )}
 
-      {/* GROUNDED Q&A DRAWER (F2) */}
+      {/* GROUNDED Q&A DRAWER (F2 & A5 Voice) */}
       {qaOpen && (
-        <div className="fixed bottom-0 right-0 w-full sm:w-[480px] h-[580px] max-h-[80vh] bg-white border-l border-t border-slate-300 shadow-2xl z-40 rounded-tl-2xl flex flex-col">
+        <div className="fixed bottom-0 right-0 w-full sm:w-[500px] h-[580px] max-h-[82vh] bg-white border-l border-t border-slate-300 shadow-2xl z-40 rounded-tl-2xl flex flex-col">
           {/* Drawer Header */}
           <div className="p-3.5 bg-slate-900 text-white rounded-tl-2xl flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span className="font-bold text-sm">Grounded Q&A (Verified Citations)</span>
+              <span className="font-bold text-sm">Grounded Q&amp;A (Voice &amp; Verified Citations)</span>
             </div>
             <button
               onClick={() => setQaOpen(false)}
@@ -792,25 +1347,25 @@ export default function AnalyzePage({ params }: PageProps) {
               className="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:border-blue-500 hover:text-blue-700 whitespace-nowrap"
               title="Tests refusal logic on unaddressed subjects"
             >
-              Pet Policy? (Out of Scope Test)
+              Pet Policy? (Out of Scope)
             </button>
             <button
               onClick={() => handleAskQuestion("Should I sue my landlord?")}
               className="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:border-red-500 hover:text-red-700 whitespace-nowrap"
               title="Tests Lever 1 Guardrail Rewrite"
             >
-              Should I sue? (Guardrail Test)
+              Should I sue? (Guardrail)
             </button>
           </div>
 
-          {/* Chat Messages */}
+          {/* Chat Messages with Read-Aloud Voice Buttons */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
             {chatHistory.length === 0 ? (
               <div className="text-center py-10 text-slate-500 space-y-2">
                 <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="font-semibold">Ask any question about this document.</p>
+                <p className="font-semibold">Ask any question or tap the mic button.</p>
                 <p className="text-[11px] max-w-xs mx-auto">
-                  Every answer requires exact clause citations. If the contract doesn&apos;t mention it, the AI refuses rather than hallucinating.
+                  Every answer requires exact clause citations. Unaddressed topics trigger explicit refusal rather than hallucination.
                 </p>
               </div>
             ) : (
@@ -823,22 +1378,25 @@ export default function AnalyzePage({ params }: PageProps) {
                       : "bg-slate-100 text-slate-900 mr-4 border border-slate-200"
                   }`}
                 >
-                  <p>{msg.text}</p>
+                  <div className="flex items-start justify-between">
+                    <p className="flex-1">{msg.text}</p>
+                    {msg.role === "assistant" && (
+                      <ReadAloudButton text={msg.text} language={actionPackLanguage} />
+                    )}
+                  </div>
 
-                  {/* Guardrail rewrite indicator */}
                   {msg.guardrailTriggered && (
                     <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-900 flex items-start space-x-1.5">
                       <ShieldAlert className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block">Lever 1 Legal Boundary Guardrail Triggered</span>
+                        <span className="font-bold block">Lever 1 Legal Boundary Guardrail Active</span>
                         <span>
-                          Direct legal advice or lawsuit recommendation was filtered and rewritten into permitted informational analysis.
+                          Lawsuit advice was rewritten into permitted informational guidance.
                         </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Clickable Clause Citation Chips */}
                   {msg.citations && msg.citations.length > 0 && (
                     <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex flex-wrap gap-1.5">
                       <span className="text-[10px] font-bold text-slate-500 uppercase block w-full">
@@ -857,7 +1415,6 @@ export default function AnalyzePage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* Grounded Statute References */}
                   {msg.statuteRefs && msg.statuteRefs.length > 0 && (
                     <div className="mt-1.5 text-[10px] text-amber-800 font-mono">
                       Statute ground: {msg.statuteRefs.map((s) => `${s.act} (${s.section})`).join(", ")}
@@ -874,7 +1431,7 @@ export default function AnalyzePage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Question Input */}
+          {/* Question Input + Mic Button */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -882,11 +1439,16 @@ export default function AnalyzePage({ params }: PageProps) {
             }}
             className="p-3 border-t border-slate-200 bg-white flex space-x-2"
           >
+            <VoiceInput
+              language={actionPackLanguage}
+              onTranscript={(text) => setQuestion(text)}
+              disabled={qaLoading}
+            />
             <input
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask a question (English, हिन्दी, or ગુજરાતી)..."
+              placeholder="Ask a question (or speak using mic)..."
               className="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <button
@@ -900,23 +1462,22 @@ export default function AnalyzePage({ params }: PageProps) {
         </div>
       )}
 
-      {/* ACTION PACK MODAL (F5) */}
+      {/* ACTION PACK & LAWYER HANDOFF MODAL (F5 & A6) */}
       {actionPackOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden border border-slate-200 shadow-2xl flex flex-col">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[88vh] overflow-hidden border border-slate-200 shadow-2xl flex flex-col">
             {/* Modal Header */}
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-blue-400" />
                 <div>
-                  <h3 className="font-bold text-sm">F5 · Action Pack</h3>
-                  <p className="text-xs text-slate-400">1-Click 4-Output Package for Non-Lawyers</p>
+                  <h3 className="font-bold text-sm">F5 · Action Pack &amp; A6 Lawyer Handoff</h3>
+                  <p className="text-xs text-slate-400">Portable outputs for non-lawyers &amp; advocates</p>
                 </div>
               </div>
 
-              {/* Language Selector: EN / HI / GU */}
+              {/* Language Selector + Close */}
               <div className="flex items-center space-x-2">
-                <Languages className="w-4 h-4 text-slate-400" />
                 <div className="flex bg-slate-800 rounded-lg p-0.5 text-xs font-semibold">
                   <button
                     onClick={() => handleGenerateActionPack("en")}
@@ -953,47 +1514,70 @@ export default function AnalyzePage({ params }: PageProps) {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-slate-200 bg-slate-50 px-4 text-xs font-semibold">
-              <button
-                onClick={() => setActionPackTab("summary")}
-                className={`py-3 px-3 border-b-2 transition-colors ${
-                  actionPackTab === "summary"
-                    ? "border-blue-600 text-blue-700 bg-white"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                1. 6-Sentence Summary
-              </button>
-              <button
-                onClick={() => setActionPackTab("checklist")}
-                className={`py-3 px-3 border-b-2 transition-colors ${
-                  actionPackTab === "checklist"
-                    ? "border-blue-600 text-blue-700 bg-white"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                2. Obligations Checklist
-              </button>
-              <button
-                onClick={() => setActionPackTab("lawyer")}
-                className={`py-3 px-3 border-b-2 transition-colors ${
-                  actionPackTab === "lawyer"
-                    ? "border-blue-600 text-blue-700 bg-white"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                3. Questions For Lawyer
-              </button>
-              <button
-                onClick={() => setActionPackTab("email")}
-                className={`py-3 px-3 border-b-2 transition-colors ${
-                  actionPackTab === "email"
-                    ? "border-blue-600 text-blue-700 bg-white"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                4. Negotiation Email Draft
-              </button>
+            <div className="flex border-b border-slate-200 bg-slate-50 px-4 text-xs font-semibold justify-between items-center">
+              <div className="flex">
+                <button
+                  onClick={() => setActionPackTab("summary")}
+                  className={`py-3 px-3 border-b-2 transition-colors ${
+                    actionPackTab === "summary"
+                      ? "border-blue-600 text-blue-700 bg-white"
+                      : "border-transparent text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  1. Plain Summary
+                </button>
+                <button
+                  onClick={() => setActionPackTab("checklist")}
+                  className={`py-3 px-3 border-b-2 transition-colors ${
+                    actionPackTab === "checklist"
+                      ? "border-blue-600 text-blue-700 bg-white"
+                      : "border-transparent text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  2. Obligations Checklist
+                </button>
+                <button
+                  onClick={() => setActionPackTab("lawyer")}
+                  className={`py-3 px-3 border-b-2 transition-colors ${
+                    actionPackTab === "lawyer"
+                      ? "border-blue-600 text-blue-700 bg-white"
+                      : "border-transparent text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  3. Questions For Lawyer
+                </button>
+                <button
+                  onClick={() => setActionPackTab("email")}
+                  className={`py-3 px-3 border-b-2 transition-colors ${
+                    actionPackTab === "email"
+                      ? "border-blue-600 text-blue-700 bg-white"
+                      : "border-transparent text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  4. Negotiation Email
+                </button>
+              </div>
+
+              {/* Printable Handoff & Calendar buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 rounded text-slate-700 font-semibold text-[11px] flex items-center space-x-1"
+                  title="Print advocate consultation packet"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Print PDF Packet</span>
+                </button>
+                <button
+                  onClick={handleDownloadCalendar}
+                  disabled={downloadingIcs}
+                  className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 rounded font-semibold text-[11px] flex items-center space-x-1"
+                  title="Export key obligations to .ICS calendar"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">.ICS Calendar</span>
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}
@@ -1010,7 +1594,10 @@ export default function AnalyzePage({ params }: PageProps) {
                   {/* TAB 1: SUMMARY */}
                   {actionPackTab === "summary" && (
                     <div className="space-y-4">
-                      <h4 className="font-bold text-slate-900 text-sm">Plain-Language Summary</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">6-Sentence Summary</h4>
+                        <ReadAloudButton text={actionPackResult.summary} language={actionPackLanguage} />
+                      </div>
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 leading-relaxed text-slate-800 text-sm">
                         {actionPackResult.summary}
                       </div>
