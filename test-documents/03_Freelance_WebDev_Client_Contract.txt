@@ -1,0 +1,31 @@
+INDEPENDENT CONTRACTOR & FREELANCE SERVICES AGREEMENT
+
+This Agreement is made on 10th November 2024 between:
+
+CLIENT:
+Apex Retail Brands Private Limited, having its office at Bandra Kurla Complex (BKC), Mumbai - 400051 ("Client")
+
+AND
+
+CONTRACTOR:
+Ms. Ananya Deshmukh, Independent UI/UX & Web Developer, residing at Pune, Maharashtra ("Contractor").
+
+SERVICES & SCOPE OF WORK:
+
+1. SCOPE OF SERVICES:
+The Contractor agrees to design, develop, test, and deploy the Client's multi-brand e-commerce web platform in accordance with the project milestone schedule.
+
+2. UNLIMITED REVISIONS UNTIL SOLE CLIENT SATISFACTION:
+The Contractor shall deliver design prototypes and code modules. The Contractor expressly agrees to provide unlimited revisions, redesigns, and modifications requested by the Client until the Client issues a written Letter of Final Acceptance at the Client's sole subjective satisfaction. No additional fees shall be billable for revisions or scope enhancements deemed necessary by the Client.
+
+3. PAYMENT SCHEDULE & NET-90 TERMS:
+Total project consideration is fixed at Rs. 2,50,000/- (Rupees Two Lakh Fifty Thousand only). Invoices submitted upon milestone completion shall be processed by the Client on a Net-90 (ninety days from invoice receipt) payment cycle. The Client reserves the right to withhold any invoice without interest if minor bugs are reported during internal testing.
+
+4. UNLIMITED INDEMNIFICATION LIABILITY:
+The Contractor agrees to defend, indemnify, and hold harmless the Client, its directors, and affiliates from and against any and all claims, customer chargebacks, server downtime damages, regulatory fines, lost profits, and legal expenses arising directly or indirectly from the website codebase, whether foreseeable or unforeseeable, with zero financial cap or limitation of liability.
+
+5. UNILATERAL TERMINATION WITHOUT KILL-FEE:
+The Client may terminate this Agreement at any time, with or without cause, by delivering 24 hours written notice via email. Upon such termination, the Contractor shall immediately hand over all Figma files and source code repositories, and the Client shall have no obligation to pay any kill fee, milestone compensation, or pro-rata payment for work in progress.
+
+6. NON-SOLICITATION & NON-DEAL:
+The Contractor agrees not to provide freelance software, web design, or consulting services to any entity in the retail, fashion, or consumer e-commerce space anywhere in India for a period of 12 months following completion of the project.

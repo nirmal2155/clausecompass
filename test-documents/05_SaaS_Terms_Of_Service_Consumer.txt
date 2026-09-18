@@ -1,0 +1,19 @@
+TERMS OF SERVICE & END USER LICENSE AGREEMENT (EULA)
+Last Updated: January 2025
+
+Please read these Terms of Service carefully before subscribing to the EduMaster Online Learning & AI Tutoring Platform operated by EduMaster Technologies India Private Limited ("EduMaster", "we", "us").
+
+1. ACCEPTANCE & UNILATERAL MODIFICATION:
+By clicking "I Agree", downloading the application, or paying the subscription fee, you ("User", "Subscriber") agree to be unconditionally bound by these Terms. We reserve the absolute right to amend, alter, delete, or substitute any clause in these Terms at any time without prior written notice or consent. Your continued access constitutes irrevocable acceptance of modified terms.
+
+2. ANNUAL RECURRING SUBSCRIPTION & NON-REFUNDABLE POLICY:
+Subscription to the Premium AI Tutoring Tier is billed annually upfront at Rs. 24,999/-. All fees and payments are 100% non-refundable under any circumstances whatsoever, including technical server unavailability, platform feature changes, student dissatisfaction, or academic course discontinuation. Subscriptions shall automatically renew at the prevailing market price unless cancelled in writing 60 days prior to the billing date.
+
+3. UNLIMITED TELEMARKETING & DATA MONETIZATION CONSENT:
+The User grants EduMaster full, unconditional consent to share, license, and commercialize all User data (including student exam marks, learning speed metrics, voice audio recordings, and home location tracking) with third-party banking, loan, credit card, and EdTech affiliate partners. The User expressly waives any opt-out right under the Digital Personal Data Protection Act, 2023.
+
+4. EXCLUSION OF ALL WARRANTIES & LIMITATION OF LIABILITY:
+The service is provided strictly on an "AS IS" and "AS AVAILABLE" basis without warranties of fitness, syllabus accuracy, or exam success. In no event shall EduMaster's total aggregate liability exceed the nominal sum of Rs. 100/- (Rupees One Hundred only), even in instances of gross platform negligence or unauthorized data breaches.
+
+5. CLASS ACTION WAIVER & BINDING INDIVIDUAL ARBITRATION:
+You agree that any dispute must be resolved through binding individual arbitration in Bengaluru before an arbitrator selected by EduMaster. You expressly waive any right to initiate, join, or participate in any consumer forum complaint, collective consumer class action under the Consumer Protection Act, 2019, or public interest litigation before high courts.

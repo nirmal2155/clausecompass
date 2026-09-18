@@ -1,0 +1,32 @@
+EMPLOYMENT & CONFIDENTIALITY AGREEMENT
+
+This Employment Agreement ("Agreement") is made on this 15th day of July 2024 by and between:
+
+NEXUSTECH SOLUTIONS PRIVATE LIMITED, a company incorporated under the Companies Act 2013, having its registered office at Cyber City, Gurugram, Haryana ("Company")
+
+AND
+
+Mr. Rohit Verma, residing at D-404, Sector 62, Noida, Uttar Pradesh ("Employee").
+
+TERMS & CONDITIONS:
+
+1. POSITION & REMUNERATION:
+The Employee is engaged as Senior Full-Stack Engineer at an annual CTC of Rs. 18,00,000/- (Rupees Eighteen Lakhs only), subject to applicable statutory deductions.
+
+2. SERVICE BOND & TRAINING COST RECOVERY:
+The Employee expressly commits to a mandatory minimum service period of 36 (thirty-six) continuous months from the Date of Joining. In the event the Employee resigns, discontinues employment, or is terminated for cause prior to completing 36 months, the Employee shall immediately pay a liquidated damages sum of Rs. 5,00,000/- (Rupees Five Lakhs only) towards estimated training and onboarding expenses, irrespective of actual training expenditure incurred by the Company.
+
+3. 24-MONTH NATIONWIDE NON-COMPETE RESTRICTION:
+Upon termination or cessation of employment for any reason whatsoever, the Employee shall not, for a period of 24 (twenty-four) continuous months from the date of relieving, directly or indirectly engage in, advise, consult with, or accept employment from any company, startup, agency, or client operating in the software engineering, IT consulting, cloud computing, or related domains anywhere within the territory of India or internationally.
+
+4. ASSIGNMENT OF ALL PERSONAL INVENTIONS:
+The Employee agrees that all intellectual property, software code, algorithms, patentable concepts, and mobile applications conceived, authored, or developed by the Employee during the tenure of employment—whether developed using Company equipment or developed on personal time using personal equipment on weekends—shall automatically and exclusively vest with the Company without any right to additional compensation or credit.
+
+5. UNCONDITIONAL WAIVER OF PERSONAL DATA RIGHTS:
+The Employee grants the Company irrevocable, unrestricted, and perpetual consent to collect, store, profile, monitor (including biometric tracking, keystroke logging, and webcam recording during work hours), and transfer all personal data and sensitive personal data to third-party data analytics vendors located outside the territory of India without further notice or right of erasure under the Digital Personal Data Protection Act, 2023.
+
+6. NOTICE PERIOD ON RESIGNATION:
+The Employee must provide a mandatory 90 (ninety) days written notice of resignation. The Company reserves the unilateral right to waive the notice period without paying salary in lieu thereof, while withholding the Employee's Relieving Letter and Experience Certificate until all audit clearances are finalized at the Company's sole discretion.
+
+7. GOVERNING LAW & COURT JURISDICTION:
+This Agreement shall be construed in accordance with the laws of India. Any dispute arising out of this Agreement shall be subject to the exclusive jurisdiction of courts situated at Gurugram, Haryana.

@@ -1,0 +1,28 @@
+NON-DISCLOSURE & EVALUATION AGREEMENT (NDA)
+
+This Mutual Non-Disclosure Agreement ("Agreement") is entered into as of 12th February 2025 by and between:
+
+DISCLOSING PARTY / STARTUP:
+FinPulse Technologies Private Limited, an early-stage Indian FinTech startup based in Koramangala, Bengaluru ("Startup")
+
+AND
+
+RECEIVING PARTY / INVESTOR:
+Vanguard Early Capital Partners LLP, having its office at Nariman Point, Mumbai ("Investor").
+
+PURPOSE: Evaluating a potential Series A equity investment and strategic collaboration in FinTech lending technology.
+
+1. DEFINITION OF CONFIDENTIAL INFORMATION:
+Confidential Information includes all proprietary algorithms, source code, risk underwriting engines, financial forecasts, customer acquisition metrics, and pitch decks shared by the Startup. However, Confidential Information shall exclude any concept, product idea, or market thesis that the Investor may independently evaluate or develop through its existing or future portfolio companies.
+
+2. NON-DISCLOSURE OBLIGATIONS:
+The Investor agrees to exercise reasonable commercial care to protect the Startup's Confidential Information. The term of confidentiality shall be strictly 12 (twelve) months from the date of disclosure, after which all confidentiality obligations shall automatically lapse, and the Investor shall have no further duty of secrecy regarding the Startup's algorithms or software code.
+
+3. ONE-SIDED NON-SOLICITATION OF STARTUP FOUNDING TEAM:
+The Startup expressly agrees that for a period of 24 months from the signing date, the Startup shall not recruit, solicit, or hire any partners, associates, or consultants of the Investor. However, this non-solicitation restriction is completely unilateral, and the Investor remains free to hire any engineers, founders, or employees of the Startup for any of its portfolio ventures.
+
+4. RESIDUAL KNOWLEDGE CARVEOUT:
+The Startup agrees that the Investor's team shall be permitted to use any "residuals"—meaning ideas, concepts, know-how, or techniques retained in the unaided memory of personnel who have had access to Confidential Information—for the purpose of investing in or advising direct competitors of the Startup.
+
+5. REMEDIES & GOVERNING LAW:
+This Agreement shall be governed by the laws of India. The courts of Mumbai shall have exclusive jurisdiction. Neither party shall be entitled to seek injunctive relief against the other party.
