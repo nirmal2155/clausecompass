@@ -180,6 +180,15 @@ export default function HomePage() {
       const res = await fetch("/api/ingest", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to analyze document");
+
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(`doc_${data.id}`, JSON.stringify(data));
+        } catch (e) {
+          console.warn("sessionStorage save error", e);
+        }
+      }
+
       router.push(`/analyze/${data.id}`);
     } catch (err: unknown) {
       const errorObj = err as Error;

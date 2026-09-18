@@ -18,6 +18,23 @@ function chunkArray<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Missing document id" }, { status: 400 });
+    }
+    const doc = getCachedDocument(id);
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+    return NextResponse.json({ docState: doc });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: "Failed to retrieve document" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -34,6 +51,7 @@ export async function POST(req: NextRequest) {
     if (existingDoc && existingDoc.findings && existingDoc.findings.length > 0) {
       return NextResponse.json({
         findings: existingDoc.findings,
+        docState: existingDoc,
         fromCache: true,
       });
     }
@@ -183,6 +201,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       findings: allFindings,
+      docState: existingDoc,
       fromCache: false,
     });
   } catch (error: unknown) {

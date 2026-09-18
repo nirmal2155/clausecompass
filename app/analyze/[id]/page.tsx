@@ -141,27 +141,88 @@ export default function AnalyzePage({ params }: PageProps) {
         loaded = DEMO_DOC_INJECTION_TEST;
       }
 
-      if (loaded) {
-        setDocState(loaded);
-        setSelectedClauseId(loaded.clauses[0]?.id || null);
-        setLoading(false);
-        // Load silence gaps for demo doc
-        loadSilenceGaps(loaded);
-        return;
+      // Priority 1: Check client sessionStorage (saved during upload/paste)
+      if (!loaded && typeof window !== "undefined") {
+        try {
+          const stored = sessionStorage.getItem(`doc_${docId}`);
+          if (stored) {
+            loaded = JSON.parse(stored);
+          }
+        } catch (e) {
+          console.warn("Could not read from sessionStorage", e);
+        }
       }
 
+      // Priority 2: Check server cache via GET /api/analyze?id=
+      if (!loaded) {
+        try {
+          const getRes = await fetch(`/api/analyze?id=${docId}`);
+          if (getRes.ok) {
+            const getData = await getRes.json();
+            if (getData.docState) {
+              loaded = getData.docState;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch cached document by id", e);
+        }
+      }
+
+      // If document was found, render it immediately!
+      if (loaded) {
+        setDocState(loaded);
+        if (loaded.clauses && loaded.clauses.length > 0) {
+          setSelectedClauseId(loaded.clauses[0].id);
+        }
+        loadSilenceGaps(loaded);
+
+        // If findings are already populated (demo docs or cached), we are done!
+        if (loaded.findings && loaded.findings.length > 0) {
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Priority 3: Compute risk findings via POST /api/analyze
       try {
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentId: docId }),
+          body: JSON.stringify({
+            documentId: docId,
+            clauses: loaded?.clauses,
+            docType: loaded?.docType,
+            userRole: loaded?.userRole,
+          }),
         });
         const data = await res.json();
-        if (data.findings) {
-          setDocState((prev) => (prev ? { ...prev, findings: data.findings } : null));
+
+        if (data.docState) {
+          const combined = {
+            ...data.docState,
+            findings: data.findings || data.docState.findings || [],
+          };
+          setDocState(combined);
+          if (combined.clauses && combined.clauses.length > 0) {
+            setSelectedClauseId(combined.clauses[0].id);
+          }
+          loadSilenceGaps(combined);
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem(`doc_${docId}`, JSON.stringify(combined));
+            } catch {}
+          }
+        } else if (data.findings && loaded) {
+          const combined = { ...loaded, findings: data.findings };
+          setDocState(combined);
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem(`doc_${docId}`, JSON.stringify(combined));
+            } catch {}
+          }
         }
       } catch (err) {
-        console.warn("Could not fetch document", err);
+        console.warn("Could not fetch risk analysis", err);
       } finally {
         setLoading(false);
       }
