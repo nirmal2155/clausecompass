@@ -49,6 +49,11 @@ import {
   DEMO_DOC_INJECTION_TEST,
 } from "@/lib/cache";
 import { VoiceInput, ReadAloudButton } from "@/components/VoiceControl";
+import { HealthScoreRing } from "@/components/HealthScoreRing";
+import { SuggestedQuestions } from "@/components/SuggestedQuestions";
+import { SkeletonCard, SkeletonLine } from "@/components/SkeletonLoader";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { GuidedTour } from "@/components/GuidedTour";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -60,6 +65,7 @@ export default function AnalyzePage({ params }: PageProps) {
 
   const [docState, setDocState] = useState<DocumentAnalysisState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tourOpen, setTourOpen] = useState(false);
   const [selectedClauseId, setSelectedClauseId] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -403,9 +409,26 @@ export default function AnalyzePage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm font-semibold text-slate-700">Loading document analysis state...</p>
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <SkeletonLine width="260px" height="24px" />
+            <SkeletonLine width="160px" height="14px" />
+          </div>
+          <SkeletonLine width="140px" height="36px" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <div className="space-y-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </div>
       </div>
     );
   }
@@ -451,6 +474,43 @@ export default function AnalyzePage({ params }: PageProps) {
   const standardCount = (docState.findings || []).filter((f) => f.severity === "standard").length;
   const absentGapsCount = gaps.filter((g) => g.status === "absent").length;
 
+  // Dynamic Contract Health Score (0-100)
+  const rawScore = 100 - (highRiskCount * 18) - (negotiateCount * 6) - (absentGapsCount * 5);
+  const healthScore = Math.max(15, Math.min(98, rawScore));
+
+  const tourSteps = [
+    {
+      target: "#left-document-pane",
+      title: "Clause-by-Clause Document View",
+      description: "Parsed into discrete clauses with line numbers, WCAG shape badges (▲ High, ◆ Negotiate, ● Standard), and synchronized highlight overlays.",
+      position: "right" as const,
+    },
+    {
+      target: "#health-score-card",
+      title: "Contract Health Score",
+      description: "Aggregated risk score based on high-severity liabilities, statutory mismatches, and unaddressed silence gaps.",
+      position: "left" as const,
+    },
+    {
+      target: "#tab-silence-radar",
+      title: "Silence Radar (What's Missing)",
+      description: "Detects absent protections like deposit refund deadlines and wear-and-tear carveouts not written in the contract.",
+      position: "bottom" as const,
+    },
+    {
+      target: "#tab-scenario-sim",
+      title: "Scenario Simulator",
+      description: "Simulates real-world situations (e.g. 'What if I vacate early in Month 4?') with exact chronological financial exposure.",
+      position: "bottom" as const,
+    },
+    {
+      target: "#btn-grounded-qa",
+      title: "Grounded Q&A",
+      description: "Ask in Hindi, Gujarati, or English. All citations are substring-verified, with an active refusal contract preventing hallucinations.",
+      position: "bottom" as const,
+    },
+  ];
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-100">
       {/* Coverage Honesty Banner */}
@@ -474,7 +534,7 @@ export default function AnalyzePage({ params }: PageProps) {
       </div>
 
       {/* Top Action & Metadata Toolbar */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shadow-xs z-20">
+      <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between shadow-xs z-20">
         <div className="flex items-center space-x-3">
           <Link
             href="/"
@@ -483,7 +543,14 @@ export default function AnalyzePage({ params }: PageProps) {
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
+          <div className="space-y-0.5">
+            <Breadcrumb
+              items={[
+                { label: "Home", href: "/" },
+                { label: "Risk Radar", href: "/" },
+                { label: docState.filename || "Contract" },
+              ]}
+            />
             <div className="flex items-center space-x-2">
               <span className="font-bold text-slate-900 text-sm">{docState.filename}</span>
               <span className="px-2 py-0.5 text-[10px] font-mono bg-slate-100 text-slate-700 rounded border border-slate-200">
@@ -500,6 +567,16 @@ export default function AnalyzePage({ params }: PageProps) {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Interactive Guided Tour Trigger */}
+          <button
+            onClick={() => setTourOpen(true)}
+            className="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 flex items-center space-x-1 transition-colors"
+            title="Start Interactive Guided Tour"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden lg:inline">Guided Tour</span>
+          </button>
+
           {/* 3-Way Reading Level Switch (A5 Father Mode) */}
           <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
             <button
@@ -521,7 +598,7 @@ export default function AnalyzePage({ params }: PageProps) {
               }`}
               title="Class 8 Simple Language mode"
             >
-              Simple (Class 8)
+              Simple
             </button>
             <button
               onClick={() => setReadingLevel("father")}
@@ -530,7 +607,7 @@ export default function AnalyzePage({ params }: PageProps) {
                   ? "bg-purple-700 text-white shadow-xs"
                   : "text-purple-700 hover:bg-purple-50"
               }`}
-              title="Explain like I'm explaining to my father (analogies & plain concepts)"
+              title="Father Mode (everyday analogies)"
             >
               Father Mode
             </button>
@@ -547,6 +624,7 @@ export default function AnalyzePage({ params }: PageProps) {
 
           {/* Q&A Drawer Toggle */}
           <button
+            id="btn-grounded-qa"
             onClick={() => setQaOpen(!qaOpen)}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors relative"
           >
@@ -564,6 +642,7 @@ export default function AnalyzePage({ params }: PageProps) {
         {/* LEFT PANE: Synchronized Document View with Colored Highlight Overlay */}
         <div
           ref={leftPaneRef}
+          id="left-document-pane"
           className="w-1/2 border-r border-slate-200 bg-white overflow-y-auto p-6 space-y-6 relative"
         >
           <div className="sticky top-0 bg-white/95 backdrop-blur pb-3 border-b border-slate-200 flex items-center justify-between z-10">
@@ -680,6 +759,7 @@ export default function AnalyzePage({ params }: PageProps) {
               </button>
 
               <button
+                id="tab-silence-radar"
                 onClick={() => setActiveRightTab("silence")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 ${
                   activeRightTab === "silence"
@@ -696,6 +776,7 @@ export default function AnalyzePage({ params }: PageProps) {
               </button>
 
               <button
+                id="tab-scenario-sim"
                 onClick={() => setActiveRightTab("scenario")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 ${
                   activeRightTab === "scenario"
@@ -712,6 +793,64 @@ export default function AnalyzePage({ params }: PageProps) {
           {/* TAB 1: RISK RADAR FINDINGS */}
           {activeRightTab === "risks" && (
             <div className="space-y-3 flex-1">
+              {/* Contract Health Score Ring Card */}
+              <div id="health-score-card" className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                  <HealthScoreRing score={healthScore} size={84} label="Health" />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-bold text-slate-900">
+                        {healthScore >= 75 ? "Balanced Contract" : healthScore >= 50 ? "Moderate Counterparty Bias" : "One-Sided High Exposure"}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                        healthScore >= 75 ? "bg-emerald-100 text-emerald-800" : healthScore >= 50 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"
+                      }`}>
+                        {healthScore >= 75 ? "Low Risk" : healthScore >= 50 ? "Needs Negotiation" : "Heavy Attention Required"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {highRiskCount} high risk · {negotiateCount} negotiate points · {absentGapsCount} missing protections
+                    </p>
+                    {/* Mini horizontal distribution bar */}
+                    <div className="flex items-center h-2 w-48 bg-slate-100 rounded-full overflow-hidden mt-2">
+                      <div style={{ width: `${(highRiskCount / Math.max(1, docState.clauses.length)) * 100}%` }} className="bg-red-500 h-full" />
+                      <div style={{ width: `${(negotiateCount / Math.max(1, docState.clauses.length)) * 100}%` }} className="bg-amber-500 h-full" />
+                      <div style={{ width: `${(standardCount / Math.max(1, docState.clauses.length)) * 100}%` }} className="bg-emerald-500 h-full" />
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleGenerateActionPack("en")}
+                  className="px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors whitespace-nowrap"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Action Pack</span>
+                </button>
+              </div>
+
+              {/* Smart Suggested Questions Chips */}
+              {docState.findings && docState.findings.length > 0 && (
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700 flex items-center space-x-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Suggested Advocate Inquiries</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">Click chip to run grounded Q&A</span>
+                  </div>
+                  <SuggestedQuestions
+                    findings={docState.findings.map((f) => ({
+                      severity: f.severity,
+                      category: f.category,
+                      plainMeaning: f.plainMeaning,
+                    }))}
+                    onSelect={(q) => {
+                      setQaOpen(true);
+                      handleAskQuestion(q);
+                    }}
+                  />
+                </div>
+              )}
               {/* Filter controls */}
               <div className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
                 <div className="flex space-x-1">
@@ -1709,6 +1848,13 @@ export default function AnalyzePage({ params }: PageProps) {
           </div>
         </div>
       )}
+
+      {/* Interactive Guided Tour */}
+      <GuidedTour
+        isOpen={tourOpen}
+        onComplete={() => setTourOpen(false)}
+        steps={tourSteps}
+      />
     </div>
   );
 }
