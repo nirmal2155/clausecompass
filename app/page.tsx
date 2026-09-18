@@ -413,6 +413,8 @@ export default function HomePage() {
                 </div>
                 <input
                   type="checkbox"
+                  id="pii-toggle"
+                  aria-label="Pre-LLM Indian PII Redaction"
                   checked={piiRedact}
                   onChange={(e) => setPiiRedact(e.target.checked)}
                   className="mt-1 h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"

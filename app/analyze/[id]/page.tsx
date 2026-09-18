@@ -410,6 +410,7 @@ export default function AnalyzePage({ params }: PageProps) {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <h1 className="sr-only">Analyzing Legal Document</h1>
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <SkeletonLine width="260px" height="24px" />
@@ -552,7 +553,7 @@ export default function AnalyzePage({ params }: PageProps) {
               ]}
             />
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-slate-900 text-sm">{docState.filename}</span>
+              <h1 className="font-bold text-slate-900 text-sm inline-block">{docState.filename}</h1>
               <span className="px-2 py-0.5 text-[10px] font-mono bg-slate-100 text-slate-700 rounded border border-slate-200">
                 {docState.docType}
               </span>

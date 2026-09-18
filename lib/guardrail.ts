@@ -4,12 +4,13 @@ import { GuardrailResult, GuardrailResultSchema } from "@/lib/schema";
 
 // Pattern rules to detect advice and outcome predictions instantly
 const ADVICE_PATTERNS = [
-  { pattern: /\b(?:you should|you must|i recommend that you)\s+sue\b/i, reason: "Direct instruction to file lawsuit" },
-  { pattern: /\b(?:file a case|file an fir|drag them to court|lodge a complaint)\b/i, reason: "Direct procedural instruction" },
-  { pattern: /\b(?:you will win|court will definitely hold|guaranteed to win|guaranteed refund)\b/i, reason: "Outcome prediction" },
+  { pattern: /\b(?:you should|you must|i recommend that you|tell user to|advise to)?\s*(?:immediately\s+)?sue\b/i, reason: "Direct instruction to file lawsuit" },
+  { pattern: /\b(?:file a case|file an fir|drag them to court|lodge a complaint|take them to court)\b/i, reason: "Direct procedural instruction" },
+  { pattern: /\b(?:you will win|court will definitely hold|guaranteed to win|guaranteed refund|guaranteed.*payout|100%.*payout)\b/i, reason: "Outcome prediction" },
   { pattern: /\b(?:this contract is invalid|they broke the law|this clause is illegal)\b/i, reason: "Definitive conclusion of law" },
   { pattern: /\b(?:do not sign this|you must not sign|refuse to sign)\b/i, reason: "Action directive regarding execution" },
   { pattern: /\b(?:you have exactly \d+ days to take legal action)\b/i, reason: "Unqualified limitation period assertion" },
+  { pattern: /\b(?:system override|ignore previous instructions|forget legal boundaries|jailbreak|disregard safety)\b/i, reason: "Adversarial system prompt injection attempt" },
 ];
 
 const ESCALATION_PATTERNS = [
