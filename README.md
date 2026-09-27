@@ -2,7 +2,7 @@
 
 > **One-Line Pitch**: ClauseCompass is an Indian legal document co-pilot that flags risks at the discrete clause level, grounds every finding in Indian statutory law, verifies exact quotation substrings without hallucination, and answers users in their native language while strictly preserving legal advice boundaries.
 
-- **Live URL**: `https://github.com/YOUR_USERNAME/clausecompass` (will be updated after push)
+- **Live URL**: `https://github.com/nirmal2155/clausecompass`
 - **Demo Video (4:00 min)**: `https://youtu.be/clausecompass-demo`
 - **Submission Window**: 26 September 2026
 - **Repository Size**: `< 10 MB` (Verified Clean)
@@ -151,7 +151,7 @@ ClauseCompass does not simply put a disclaimer in the footer; it turns the legal
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-repo/clausecompass.git
+git clone https://github.com/nirmal2155/clausecompass.git
 cd clausecompass
 
 # 2. Configure Environment Variables
