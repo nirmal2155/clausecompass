@@ -37,6 +37,7 @@ OUTPUT: JSON only.
   "gaps": [
     {
       "key": string,
+      "label": string (human-readable topic name),
       "status": "covered|partial|absent",
       "proofClauseId": string|null,
       "proofSpan": string,

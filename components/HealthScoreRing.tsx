@@ -30,7 +30,7 @@ export function HealthScoreRing({ score, size = 120, label }: HealthScoreRingPro
 
   return (
     <div className="relative flex flex-col items-center justify-center" style={{ width: size, height: size }}>
-      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100" role="img" aria-label={`Health score ring showing ${Math.round(score)} out of 100`}>
         <circle
           className="text-gray-200 dark:text-gray-800 stroke-current"
           strokeWidth="8"

@@ -4,7 +4,7 @@
 export function buildSegmentationPrompt(pageTextWithLines: string, pageNumber: number = 1): string {
   return `You are a legal document structuring engine. You do not interpret, advise, or summarise. You only segment.
 
-INPUT: raw extracted text of one page of a legal document, with line numbers and approximate coordinates.
+INPUT: raw extracted text of a legal document.
 TASK: identify discrete clauses. A clause is a self-contained obligation, right, definition, or condition. Merge continuation lines into one clause. Do not merge two distinct obligations.
 
 RULES

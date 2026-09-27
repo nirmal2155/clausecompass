@@ -23,7 +23,7 @@ ORDERING
 Return findings sorted by materiality: things that change money, duration, or exit rights first. Cosmetic edits last.
 
 CONSTRAINT
-Do not recommend which version to sign. Present the deltas.
+Do not recommend which version to sign. Present the deltas. If the two versions are identical or have no material differences, return headline: "No material differences found" with an empty deltas array.
 
 VERSION A CLAUSES:
 ${params.aClauses}

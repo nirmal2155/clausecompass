@@ -115,7 +115,7 @@ export default function AnalyzePage({ params }: PageProps) {
 
   // Action Pack Modal State (F5)
   const [actionPackOpen, setActionPackOpen] = useState(false);
-  const [actionPackLanguage, setActionPackLanguage] = useState<"en" | "hi" | "gu">("en");
+  const [actionPackLanguage, setActionPackLanguage] = useState<"en" | "hi">("en");
   const [actionPackResult, setActionPackResult] = useState<ActionPackResult | null>(null);
   const [actionPackLoading, setActionPackLoading] = useState(false);
   const [actionPackTab, setActionPackTab] = useState<"summary" | "checklist" | "lawyer" | "email">("summary");
@@ -398,7 +398,7 @@ export default function AnalyzePage({ params }: PageProps) {
   };
 
   // Generate Action Pack (F5)
-  const handleGenerateActionPack = async (lang: "en" | "hi" | "gu" = actionPackLanguage) => {
+  const handleGenerateActionPack = async (lang: "en" | "hi" = actionPackLanguage) => {
     setActionPackLanguage(lang);
     setActionPackOpen(true);
     setActionPackLoading(true);
@@ -573,7 +573,7 @@ export default function AnalyzePage({ params }: PageProps) {
     {
       target: "#btn-grounded-qa",
       title: "Grounded Q&A",
-      description: "Ask in Hindi, Gujarati, or English. All citations are substring-verified, with an active refusal contract preventing hallucinations.",
+      description: "Ask in Hindi or English. All citations are substring-verified, with an active refusal contract preventing hallucinations.",
       position: "bottom" as const,
     },
   ];
@@ -705,12 +705,12 @@ export default function AnalyzePage({ params }: PageProps) {
       </div>
 
       {/* Hero Split View: Left Document Pane & Right Multi-Tab Radar Pane */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* LEFT PANE: Synchronized Document View with Colored Highlight Overlay */}
         <div
           ref={leftPaneRef}
           id="left-document-pane"
-          className="w-1/2 border-r border-slate-200 bg-white overflow-y-auto p-6 space-y-6 relative"
+          className="w-full lg:w-1/2 border-r border-slate-200 bg-white overflow-y-auto p-6 space-y-6 relative"
         >
           <div className="sticky top-0 bg-white/95 backdrop-blur pb-3 border-b border-slate-200 flex items-center justify-between z-10">
             <div className="flex items-center space-x-2">
@@ -806,7 +806,7 @@ export default function AnalyzePage({ params }: PageProps) {
         {/* RIGHT PANE: Multi-Tab Features (Risk Radar / Silence Radar / Scenario Simulator) */}
         <div
           ref={rightPaneRef}
-          className="w-1/2 bg-slate-50 overflow-y-auto p-6 space-y-4 flex flex-col"
+          className="w-full lg:w-1/2 bg-slate-50 overflow-y-auto p-6 space-y-4 flex flex-col"
         >
           {/* Main Tab Bar */}
           <div className="bg-white rounded-xl p-2 border border-slate-200 shadow-xs flex items-center justify-between sticky top-0 z-10">
@@ -820,7 +820,7 @@ export default function AnalyzePage({ params }: PageProps) {
                 }`}
               >
                 <span>F1 · Risk Radar</span>
-                <span className="text-[10px] px-1.5 py-0.2 bg-red-500/30 rounded-full font-mono">
+                <span className="text-[10px] px-1.5 py-0.5 bg-red-500/30 rounded-full font-mono">
                   {highRiskCount}
                 </span>
               </button>
@@ -836,7 +836,7 @@ export default function AnalyzePage({ params }: PageProps) {
               >
                 <span>A1 · Silence Radar (What&apos;s Missing)</span>
                 {absentGapsCount > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.2 bg-rose-500/40 text-rose-100 rounded-full font-mono">
+                  <span className="text-[10px] px-1.5 py-0.5 bg-rose-500/40 text-rose-100 rounded-full font-mono">
                     {absentGapsCount} Gaps
                   </span>
                 )}

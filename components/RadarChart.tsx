@@ -35,7 +35,7 @@ export function RadarChart({ data, size = 240 }: RadarChartProps) {
 
   return (
     <div className="relative flex justify-center items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="overflow-visible">
+      <svg width={size} height={size} className="overflow-visible" role="img" aria-label="Risk category radar chart">
         {/* Grid */}
         {gridLevels.map((level, i) => (
           <polygon

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     );
 
     const prompt = buildActionPackPrompt({
-      language: language as "en" | "hi" | "gu",
+      language: language as "en" | "hi",
       userRole: userRole || "Tenant",
       findingsJson,
       counterpartyInfo: counterpartyInfo || undefined,
@@ -125,16 +125,6 @@ export async function POST(req: NextRequest) {
           summaryText = `यह अनुबंध ${role} के परिप्रेक्ष्य से विश्लेषित किया गया है जिसमें ${findingList.length} प्रावधानों की समीक्षा की गई है। इसमें ${highRisks.length} उच्च-जोखिम (High Risk) और ${negotiateList.length} बातचीत योग्य बिंदु पाए गए हैं। मुख्य निष्कर्ष: ${
             highRisks.map((h) => h.plainMeaning).slice(0, 3).join("। ") || "दस्तावेज़ की सामान्य कानूनी शर्तें।"
           }। हस्ताक्षर करने से पहले वैधानिक सुरक्षा उपायों का मूल्यांकन करें।`;
-        }
-      } else if (language === "gu") {
-        if (isEmployment) {
-          summaryText = `આ દસ્તાવેજ ${role} માટે રોજગાર અને ગોપનીયતા કરાર છે જેમાં ${findingList.length} શરતોનું વિશ્લેષણ કરવામાં આવ્યું છે. મુખ્ય જોખમી મુદ્દા: ${
-            highRisks.map((h) => h.plainMeaning).slice(0, 3).join("; ") || "સર્વિસ બોન્ડ અને નોન-કમ્પીટ શરતો."
-          }. ભારતીય કરાર અધિનિયમ 1872 ની કલમ 27 હેઠળ નોકરી છોડ્યા પછીના વ્યવસાયિક પ્રતિબંધો સંપૂર્ણપણે અમાન્ય છે.`;
-        } else {
-          summaryText = `આ દસ્તાવેજ ${role} ના દ્રષ્ટિકોણથી તૈયાર કરાયેલ કાનૂની કરાર છે જેમાં ${findingList.length} જોગવાઈઓનું વિશ્લેષણ કરવામાં આવ્યું છે. મુખ્ય મુદ્દા: ${
-            highRisks.map((h) => h.plainMeaning).slice(0, 3).join("; ") || "કરારની સામાન્ય શરતો."
-          }.`;
         }
       } else {
         // English

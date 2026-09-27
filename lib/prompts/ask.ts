@@ -27,7 +27,7 @@ If the user asks "what should I do", "will I win", "is this legal", "should I si
 
 TONE
 Short sentences. Everyday words.
-If the user wrote in Hindi or Gujarati, reply in that language, but keep clause numbers and legal term-of-art in English with a plain gloss in brackets.
+If the user wrote in Hindi, reply in that language, but keep clause numbers and legal term-of-art in English with a plain gloss in brackets.
 
 RETRIEVED CLAUSES:
 ${params.clauseContext}

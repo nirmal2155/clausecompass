@@ -2,7 +2,7 @@
  * P6 · Action Pack prompt
  */
 export function buildActionPackPrompt(params: {
-  language: "en" | "hi" | "gu";
+  language: "en" | "hi";
   userRole: string;
   findingsJson: string;
   counterpartyInfo?: string;
@@ -11,7 +11,6 @@ export function buildActionPackPrompt(params: {
   const langInstructions = {
     en: "Write in clear, accessible English.",
     hi: "Write naturally in standard conversational Hindi (हिन्दी). Keep clause numbers, party names, and defined terms in English with plain Hindi explanations in brackets.",
-    gu: "Write naturally in conversational Gujarati (ગુજરાતી). Keep clause numbers, party names, and defined terms in English with plain Gujarati explanations in brackets.",
   }[params.language] || "Write in clear English.";
 
   return `ROLE
@@ -30,10 +29,10 @@ Only obligations that fall on ${params.userRole || "the user"}. Each item:
 - clauseId: which clause it comes from
 
 3. QUESTIONS FOR YOUR LAWYER
-Eight questions, ranked by what saves the user money or risk. Each question must be answerable only by a lawyer with the facts — skip anything already answered in the document. Attach the clause each question arises from. Write them as the user would speak them. Include why it matters.
+Up to eight questions (fewer if the document has limited findings), ranked by what saves the user money or risk. Each question must be answerable only by a lawyer with the facts — skip anything already answered in the document. Attach the clause each question arises from. Write them as the user would speak them. Include why it matters.
 
 4. NEGOTIATION EMAIL
-A short, calm, professional draft the user can send to the other side about the top three "high" findings. Ask for changes, do not threaten.
+A short, calm, professional draft the user can send to the other side about the most significant findings (prioritizing high-severity, then negotiate-severity). Ask for changes, do not threaten.
 - Recipient Greeting: Address the counterparty directly using their name or team (e.g. "Dear ${params.counterpartyInfo || "Counterparty"} Team," or "Dear Mr. / Ms. ...").
 - Sign-off: Sign off with the actual signatory's name, title, and address (${params.signatoryInfo || params.userRole || "Authorized Signatory"}).
 - CRITICAL CONSTRAINT: DO NOT output bracketed placeholders such as [Signatory Name], [Your Name], [Contact Info], or [आपका नाम]. Use the exact extracted party details provided.

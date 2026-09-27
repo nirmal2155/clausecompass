@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
             );
           }) || matchedClauses[0];
 
-        if (exitClause) {
+        if (exitClause && exitClause.text) {
           const span = exitClause.text.slice(0, Math.min(70, exitClause.text.length)).trim();
           const tLower = exitClause.text.toLowerCase();
 
@@ -113,20 +113,25 @@ export async function POST(req: NextRequest) {
             statuteRefs: statuteRefs.length > 0 ? statuteRefs : matchedStatutes.map((s) => ({ act: s.act, section: s.section, relevance: s.gist.slice(0, 80) })),
             groundingType: "document",
           };
+        } else if (matchedClauses.length > 0) {
+          const primary = matchedClauses[0];
+          const span = primary.text ? primary.text.slice(0, Math.min(60, primary.text.length)) : "";
+          return {
+            answer: `According to Clause ${primary.number || primary.id} (${primary.heading}), the agreement specifies: "${span}...". This governs the rights and duties of the parties on this point.`,
+            answerFound: true,
+            citations: [{ clauseId: primary.id, quotedSpan: span, verified: true }],
+            statuteRefs: matchedStatutes.map((s) => ({ act: s.act, section: s.section, relevance: s.gist.slice(0, 80) })),
+            groundingType: "document",
+          };
+        } else {
+          return {
+            answer: "I couldn't find a specific clause addressing this exit scenario clearly in the document.",
+            answerFound: false,
+            citations: [],
+            statuteRefs: [],
+            groundingType: "general",
+          };
         }
-      }
-
-      // Default contextual answer based on matched clause
-      if (matchedClauses.length > 0) {
-        const primary = matchedClauses[0];
-        const span = primary.text.slice(0, Math.min(60, primary.text.length));
-        return {
-          answer: `According to Clause ${primary.number || primary.id} (${primary.heading}), the agreement specifies: "${span}...". This governs the rights and duties of the parties on this point.`,
-          answerFound: true,
-          citations: [{ clauseId: primary.id, quotedSpan: span, verified: true }],
-          statuteRefs: matchedStatutes.map((s) => ({ act: s.act, section: s.section, relevance: s.gist.slice(0, 80) })),
-          groundingType: "document",
-        };
       }
 
       return {

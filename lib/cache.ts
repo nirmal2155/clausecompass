@@ -9,6 +9,17 @@ interface CacheEntry {
 
 const documentCache = new Map<string, CacheEntry>();
 
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of documentCache.entries()) {
+      if (now > entry.expiresAt) {
+        documentCache.delete(key);
+      }
+    }
+  }, 15 * 60 * 1000);
+}
+
 export function calculateHash(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex");
 }

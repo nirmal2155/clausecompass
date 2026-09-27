@@ -575,12 +575,12 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <FeatureCard icon={Eye} title="Risk Radar Split View" description="Clause-by-clause analysis with synchronized scrolling, shape+text severity badges, and WCAG 2.1 AA compliant highlights." color="blue" delay="delay-1" />
-            <FeatureCard icon={MessageSquare} title="Grounded Q&A" description="Ask in Hindi, Gujarati, or English. Get answers with verified citations that jump to the exact clause." color="emerald" delay="delay-2" />
+            <FeatureCard icon={MessageSquare} title="Grounded Q&A" description="Ask in Hindi or English. Get answers with verified citations that jump to the exact clause." color="emerald" delay="delay-2" />
             <FeatureCard icon={Scale} title="Indian Statute Check" description="Instant grounding against 4 Indian statutes with section-specific citations and questions for your advocate." color="amber" delay="delay-3" />
             <FeatureCard icon={Search} title="Silence Radar" description="Detects what's MISSING from your contract — deposit refund timelines, wear and tear, force majeure." color="rose" delay="delay-4" />
             <FeatureCard icon={FileText} title="Counter-Draft Engine" description="Generates balanced redline proposals with anticipated objections and fallback negotiation positions." color="purple" delay="delay-5" />
             <FeatureCard icon={Zap} title="Scenario Simulator" description="'What if I lose my job in month 4?' — chronological financial cascade with ₹5.75L total exposure." color="indigo" delay="delay-6" />
-            <FeatureCard icon={Globe} title="Multilingual Action Pack" description="Summary, checklist, lawyer questions, and negotiation email in English, Hindi, or Gujarati." color="blue" delay="delay-7" />
+            <FeatureCard icon={Globe} title="Multilingual Action Pack" description="Summary, checklist, lawyer questions, and negotiation email in English or Hindi." color="blue" delay="delay-7" />
             <FeatureCard icon={Mic} title="Voice Access" description="Speak your question in Hindi or English. Listen to simplified explanations with Father Mode TTS." color="emerald" delay="delay-8" />
             <FeatureCard icon={BarChart3} title="Trust Dashboard" description="61-case golden benchmark. 100% citation verification. 100% injection defense. Fully transparent." color="amber" delay="delay-1" />
           </div>

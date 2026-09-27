@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 interface VoiceInputProps {
-  language?: "en" | "hi" | "gu";
+  language?: "en" | "hi";
   onTranscript: (text: string) => void;
   disabled?: boolean;
 }
@@ -30,7 +30,6 @@ export function VoiceInput({ language = "en", onTranscript, disabled = false }: 
       const langMap: Record<string, string> = {
         en: "en-IN",
         hi: "hi-IN",
-        gu: "gu-IN",
       };
 
       recognition.lang = langMap[language] || "en-IN";
@@ -82,7 +81,7 @@ export function VoiceInput({ language = "en", onTranscript, disabled = false }: 
 
 interface ReadAloudButtonProps {
   text: string;
-  language?: "en" | "hi" | "gu";
+  language?: "en" | "hi";
 }
 
 export function ReadAloudButton({ text, language = "en" }: ReadAloudButtonProps) {
@@ -110,7 +109,6 @@ export function ReadAloudButton({ text, language = "en" }: ReadAloudButtonProps)
     const langMap: Record<string, string> = {
       en: "en-IN",
       hi: "hi-IN",
-      gu: "gu-IN",
     };
     utterance.lang = langMap[language] || "en-IN";
     utterance.rate = 0.95;

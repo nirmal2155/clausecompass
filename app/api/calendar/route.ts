@@ -22,10 +22,32 @@ export async function POST(req: NextRequest) {
       "METHOD:PUBLISH",
     ];
 
+    function parseRelativeDate(due: string, idx: number): Date {
+      const target = new Date();
+      const lower = due.toLowerCase();
+      
+      const daysMatch = lower.match(/(\d+)\s*days?/);
+      const weeksMatch = lower.match(/(\d+)\s*weeks?/);
+      const monthsMatch = lower.match(/(\d+)\s*months?/);
+
+      if (daysMatch) {
+        target.setDate(target.getDate() + parseInt(daysMatch[1], 10));
+      } else if (weeksMatch) {
+        target.setDate(target.getDate() + parseInt(weeksMatch[1], 10) * 7);
+      } else if (monthsMatch) {
+        target.setMonth(target.getMonth() + parseInt(monthsMatch[1], 10));
+      } else if (lower.includes('before signing') || lower.includes('immediately')) {
+        // Keep current date
+      } else {
+        // Fallback
+        target.setDate(target.getDate() + (idx + 1) * 7);
+      }
+      return target;
+    }
+
     items.forEach((item: any, idx: number) => {
       // Create event date offset from current date
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + (idx + 1) * 7);
+      const targetDate = parseRelativeDate(item.due || '', idx);
       const dateStr = targetDate.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
       icsContent.push(

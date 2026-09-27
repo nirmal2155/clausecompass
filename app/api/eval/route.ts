@@ -24,8 +24,14 @@ export async function GET() {
 
   // Run in-process evaluation
   const casesPath = path.join(process.cwd(), "eval", "cases.jsonl");
-  const lines = fs.readFileSync(casesPath, "utf-8").split("\n").filter((l) => l.trim().length > 0);
-  const cases: EvalCase[] = lines.map((l) => JSON.parse(l));
+  let cases: EvalCase[] = [];
+  try {
+    const lines = fs.readFileSync(casesPath, "utf-8").split("\n").filter((l) => l.trim().length > 0);
+    cases = lines.map((l) => JSON.parse(l));
+  } catch (err) {
+    console.warn("Could not read or parse cases.jsonl", err);
+    return NextResponse.json({ error: "Failed to load evaluation cases" }, { status: 404 });
+  }
 
   const docMap: Record<string, any> = {
     "demo-rent-bangalore": DEMO_DOC_RENT_AGREEMENT,

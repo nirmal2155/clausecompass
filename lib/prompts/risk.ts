@@ -28,7 +28,7 @@ HARD CONSTRAINTS
 2. "plainMeaning" must avoid: heretofore, notwithstanding, indemnify, force majeure, liquidated damages — explain the concept in everyday words instead.
 3. Never write "you should", "I recommend", "you must sue", "this is illegal". Describe the clause's effect only.
 4. If a clause is ambiguous, set confidence "low" and say plainly what is unclear. Do not resolve ambiguity by guessing.
-5. Do not reference any statute in this step. That is a separate stage.
+5. Do not cite specific statute sections in this step. Provide only a brief legal concept keyword in statuteHint (e.g., "unconscionability", "restraint of trade").
 
 OUTPUT: JSON only, matching:
 {"findings":[{"clauseId":string,"severity":"high|negotiate|standard","category":"financial|termination|liability|confidentiality|dispute|data_privacy|ip|other","plainMeaning":string,"whyItMatters":string,"favours":"you|counterparty|balanced|unclear","quotedSpan":string,"confidence":"high|medium|low","statuteHint":string}]}
