@@ -5,6 +5,8 @@ export function buildActionPackPrompt(params: {
   language: "en" | "hi" | "gu";
   userRole: string;
   findingsJson: string;
+  counterpartyInfo?: string;
+  signatoryInfo?: string;
 }): string {
   const langInstructions = {
     en: "Write in clear, accessible English.",
@@ -31,7 +33,14 @@ Only obligations that fall on ${params.userRole || "the user"}. Each item:
 Eight questions, ranked by what saves the user money or risk. Each question must be answerable only by a lawyer with the facts — skip anything already answered in the document. Attach the clause each question arises from. Write them as the user would speak them. Include why it matters.
 
 4. NEGOTIATION EMAIL
-A short, calm, professional draft the user can send to the other side about the top three "high" findings. Ask for changes, do not threaten. Leave [square brackets] wherever a personal fact is needed. Include a polite subject line.
+A short, calm, professional draft the user can send to the other side about the top three "high" findings. Ask for changes, do not threaten.
+- Recipient Greeting: Address the counterparty directly using their name or team (e.g. "Dear ${params.counterpartyInfo || "Counterparty"} Team," or "Dear Mr. / Ms. ...").
+- Sign-off: Sign off with the actual signatory's name, title, and address (${params.signatoryInfo || params.userRole || "Authorized Signatory"}).
+- CRITICAL CONSTRAINT: DO NOT output bracketed placeholders such as [Signatory Name], [Your Name], [Contact Info], or [आपका नाम]. Use the exact extracted party details provided.
+
+CONTRACT PARTIES:
+- Counterparty / Recipient: ${params.counterpartyInfo || "Counterparty Team"}
+- Signatory / Sender: ${params.signatoryInfo || params.userRole || "Signatory"}
 
 ABSOLUTE CONSTRAINTS
 - No legal conclusions. No "you are entitled to", no "they are in breach", no predictions about court outcomes.

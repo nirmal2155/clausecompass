@@ -2,7 +2,7 @@
 
 > **One-Line Pitch**: ClauseCompass is an Indian legal document co-pilot that flags risks at the discrete clause level, grounds every finding in Indian statutory law, verifies exact quotation substrings without hallucination, and answers users in their native language while strictly preserving legal advice boundaries.
 
-- **Live URL**: `https://clausecompass.vercel.app`
+- **Live URL**: `https://github.com/YOUR_USERNAME/clausecompass` (will be updated after push)
 - **Demo Video (4:00 min)**: `https://youtu.be/clausecompass-demo`
 - **Submission Window**: 26 September 2026
 - **Repository Size**: `< 10 MB` (Verified Clean)
@@ -13,7 +13,7 @@
 
 Every month, millions of Indian citizens sign rental leases, employment offer letters, vendor contracts, and terms of service without legal counsel. Traditional lawyers are expensive and slow, while standard consumer AI tools ("Upload PDF → Summary") produce superficial summaries, hallucinate clauses, cite US/UK legal principles, and cross into illegal unauthorized legal practice.
 
-ClauseCompass is built specifically for Indian tenants, employees, and consumers. It treats contracts not as a single text blob, but as discrete enforceable obligations. It segments agreements clause-by-clause, scores risks against an Indian statutory index (Model Tenancy Act 2021, Indian Contract Act 1872, Consumer Protection Act 2019, DPDP Act 2023), enforces server-side verified substring citations, and provides an actionable bilingual package (English, हिन्दी, ગુજરાતી) to take to an advocate or counterparty.
+ClauseCompass is built specifically for Indian tenants, employees, and consumers. It treats contracts not as a single text blob, but as discrete enforceable obligations. It segments agreements clause-by-clause, scores risks against an Indian statutory index (Model Tenancy Act 2021, Indian Contract Act 1872, Consumer Protection Act 2019, DPDP Act 2023), enforces server-side verified substring citations, and provides an actionable bilingual package (English, हिन्दी) to take to an advocate or counterparty.
 
 ---
 
@@ -27,14 +27,14 @@ ClauseCompass is built specifically for Indian tenants, employees, and consumers
 | **4** | Gemini 2.0 Flash — Streaming | RAG question answering with verified clause citations & refusal contract | `app/api/ask/route.ts` |
 | **5** | Gemini 2.0 Flash — JSON mode | Statute comparison verdict over retrieved Indian Acts (max 12-word quotes) | `app/api/statute/route.ts` |
 | **6** | Gemini 2.0 Flash — JSON mode | Semantic diff between two document versions sorted by materiality | `app/api/compare/route.ts` |
-| **7** | Gemini 2.0 Flash — JSON mode | Action Pack generation: summary, checklist, lawyer questions, email (EN/HI/GU) | `app/api/actionpack/route.ts` |
+| **7** | Gemini 2.0 Flash — JSON mode | Action Pack generation: summary, checklist, lawyer questions, email (EN/HI) | `app/api/actionpack/route.ts` |
 | **8** | Gemini Flash Lite — Temp 0 | Post-generation compliance classifier enforcing the legal boundary & auto-rewriting | `lib/guardrail.ts` |
 | **9** | Claude 3.5 Sonnet | Automatic fallback provider on validation retry failure / rate limits | `lib/llm.ts` |
 | **10** | Embeddings + LLM verification | Missing-clause absence detection (Silence Radar) against expected-topics corpus | `app/api/gaps/route.ts` |
 | **11** | Gemini 2.0 Flash — JSON mode | Counter-draft clause generation with reciprocity & quantification constraints | `app/api/redline/route.ts` |
 | **12** | Gemini 2.0 Flash — JSON mode | Scenario simulation tracing chained clauses with strict stated arithmetic | `app/api/scenario/route.ts` |
 | **13** | Gemini 2.0 Flash — JSON mode | Document type & user role inference with confirmation step | `app/api/ingest/route.ts` |
-| **14** | Web Speech / SpeechSynthesis | Voice question input and spoken read-aloud answers in hi-IN, gu-IN, en-IN | `components/VoiceControl.tsx` |
+| **14** | Web Speech / SpeechSynthesis | Voice question input and spoken read-aloud answers in hi-IN, en-IN | `components/VoiceControl.tsx` |
 | **15** | Automated Eval Harness | 60-case golden benchmark scoring citation, refusal, guardrail, and injection | `eval/run.ts` |
 
 ---
@@ -175,7 +175,7 @@ npm run build
 
 1. **Scanned Image PDFs**: Requires selectable text layer or OCR pre-processing. Non-text image scans should be converted via OCR before analysis.
 2. **State-Specific Rent Control Act Variations**: While grounded in Central Acts (ICA 1872, Model Tenancy Act 2021, CPA 2019, DPDP 2023), state-specific rent control legislations (e.g. Maharashtra Rent Control Act 1999) have local procedural nuances that require advocate verification.
-3. **Multi-Party Contracts**: Current prompts optimize for bilateral agreements (Tenant-Landlord, Employee-Employer, Buyer-Seller).
+3. **Multi-Party Contracts**: Supports 20+ party role patterns covering most Indian bilateral contract formats. Extremely unusual formats may require manual party identification.
 
 ---
 
@@ -196,3 +196,13 @@ npm run build
 | **3:10–3:35** | A4 · Trust Dashboard (`/trust`) | Open `/trust`. 60 labelled cases, 100% citation verification, &gt;95% refusal accuracy, 0% hallucination. *"Hum apne aap ko test karte hain."* |
 | **3:35–3:50** | Architecture Frame | 15 GenAI touchpoints in one unified frame. |
 
+---
+
+## 11. New Features Added
+
+- **Dynamic Contract Party Extraction**: Intelligent regex-based engine that extracts real counterparty and signatory names, addresses, and titles from contract preambles. Supports 20+ Indian legal role patterns including CLIENT/CONTRACTOR, EMPLOYER/EMPLOYEE, LESSOR/LESSEE, FIRST PARTY/SECOND PARTY, LICENSOR/LICENSEE, PROMOTER/ALLOTTEE, FRANCHISOR/FRANCHISEE, and more.
+- **Grounded Negotiation Emails**: Action Pack emails auto-populate real party names and addresses extracted from the contract. No bracket placeholders - emails are ready to send.
+- **Universal Contract Support**: Party extractor handles any unseen Indian contract format through 20+ role label patterns, 'of the First Part' style parsing, and intelligent fallback.
+- **Hindi Action Pack (100% Devanagari)**: Complete Hindi translation of summaries, checklists, lawyer questions, and negotiation emails.
+- **Dynamic Scenario Simulator**: Clause-grounded 'what-if' simulator that traces chained obligations with strict arithmetic.
+- **Silence Radar (Gap Detection)**: Identifies missing clauses that SHOULD be present but aren't, based on document type.

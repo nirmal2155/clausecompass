@@ -102,7 +102,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Security: PII Redaction
+    // 3. Auto-detect docType and userRole if default or if clear markers exist
+    const textLower = textContent.toLowerCase();
+    let finalDocType = docType;
+    let finalUserRole = userRole;
+
+    const isGenericOrDefault =
+      docType === "General Legal Contract" ||
+      (docType === "Residential Tenancy Agreement" && userRole === "Tenant");
+
+    if (isGenericOrDefault) {
+      if (textLower.includes("non-disclosure") || textLower.includes("confidential information") || textLower.includes("mutual nda") || textLower.includes("disclosing party") || textLower.includes("receiving party")) {
+        finalDocType = "Non-Disclosure Agreement";
+        finalUserRole = "Receiving Party";
+      } else if (textLower.includes("coaching") || textLower.includes("tuition") || textLower.includes("classroom course") || textLower.includes("student enrollment") || (textLower.includes("institute") && textLower.includes("course"))) {
+        finalDocType = "Consumer Terms of Service";
+        finalUserRole = "Consumer";
+      } else if (textLower.includes("freelance") || textLower.includes("independent contractor") || textLower.includes("statement of work") || textLower.includes("deliverables") || (textLower.includes("client") && textLower.includes("contractor"))) {
+        finalDocType = "Commercial Service Agreement";
+        finalUserRole = "Contractor";
+      } else if (textLower.includes("employment agreement") || textLower.includes("employment contract") || (textLower.includes("employer") && textLower.includes("employee")) || (textLower.includes("salary") && textLower.includes("probation"))) {
+        finalDocType = "Employment Contract";
+        finalUserRole = "Employee";
+      } else if (textLower.includes("lease") || textLower.includes("tenancy") || textLower.includes("lessor") || textLower.includes("lessee") || textLower.includes("rent")) {
+        finalDocType = "Residential Tenancy Agreement";
+        finalUserRole = "Tenant";
+      }
+    }
+
+    // 4. Security: PII Redaction
     let processedText = textContent;
     let redactionMap: Record<string, string> = {};
     if (piiRedact) {
@@ -111,7 +139,7 @@ export async function POST(req: NextRequest) {
       redactionMap = redaction.tokenMap;
     }
 
-    // 4. SHA-256 Hash check for demo insurance and fast caching
+    // 5. SHA-256 Hash check for demo insurance and fast caching
     const fileHash = calculateHash(processedText);
     const existing = getCachedDocument(fileHash);
     if (existing) {
@@ -128,7 +156,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 5. Clause Segmentation (P1) wrapped with P8 untrusted boundary
+    // 6. Clause Segmentation (P1) wrapped with P8 untrusted boundary
     const docId = "doc-" + Math.random().toString(36).substring(2, 9);
     const wrappedDoc = wrapUntrustedDocument(processedText);
     const segmentationPrompt = buildSegmentationPrompt(wrappedDoc, 1);
@@ -143,8 +171,8 @@ export async function POST(req: NextRequest) {
 
       for (let i = 0; i < rawLines.length; i++) {
         const line = rawLines[i];
-        // Detect numbered clauses like "1. PREMISES:" or "Clause 14:"
-        const match = line.match(/^(\d+|Clause\s+\d+)[\.:\s]+([A-Z\s]{3,30})?[\.:\s]*(.*)/i);
+        // Match: "1. Heading", "Clause 1: Heading", "SECTION 1 - Heading", "ARTICLE 1:", etc.
+        const match = line.match(/^(?:CLAUSE|SECTION|ARTICLE)?\s*(\d+)[\.:\)\s]+([A-Za-z\s\/\-]{3,40})?[\.:\s]*(.*)/i);
         if (match) {
           if (currentBuffer.length > 0) {
             parsedClauses.push({
@@ -157,7 +185,7 @@ export async function POST(req: NextRequest) {
             });
             currentBuffer = [];
           }
-          currentNumber = match[1].replace(/Clause\s+/i, "");
+          currentNumber = match[1];
           currentHeading = match[2]?.trim() || `Clause ${currentNumber}`;
           if (match[3]) currentBuffer.push(match[3]);
         } else {
@@ -205,8 +233,8 @@ export async function POST(req: NextRequest) {
       id: docId,
       filename,
       fileHash,
-      docType,
-      userRole,
+      docType: finalDocType,
+      userRole: finalUserRole,
       rawText: processedText,
       clauses,
       findings: [],
@@ -221,8 +249,9 @@ export async function POST(req: NextRequest) {
       id: docId,
       fileHash,
       filename,
-      docType,
-      userRole,
+      docType: finalDocType,
+      userRole: finalUserRole,
+      rawText: processedText,
       clauses,
       findings: [],
       fromCache: false,

@@ -408,8 +408,13 @@ export default function AnalyzePage({ params }: PageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          documentId: docState?.id,
           findings: docState?.findings || [],
           userRole: docState?.userRole || "Tenant",
+          docType: docState?.docType || "Legal Contract",
+          filename: docState?.filename || "Contract",
+          clauses: docState?.clauses || [],
+          rawText: docState?.rawText || "",
           language: lang,
         }),
       });
@@ -1672,37 +1677,33 @@ export default function AnalyzePage({ params }: PageProps) {
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-blue-400" />
                 <div>
-                  <h3 className="font-bold text-sm">F5 · Action Pack &amp; A6 Lawyer Handoff</h3>
-                  <p className="text-xs text-slate-400">Portable outputs for non-lawyers &amp; advocates</p>
+                  <h3 className="font-bold text-sm">
+                    {actionPackLanguage === "hi" ? "F5 · एक्शन पैक एवं वकील हैंडऑफ (Action Pack)" : "F5 · Action Pack & A6 Lawyer Handoff"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {actionPackLanguage === "hi" ? "गैर-वकीलों और अधिवक्ताओं के लिए व्यावहारिक कानूनी आउटपुट" : "Portable outputs for non-lawyers & advocates"}
+                  </p>
                 </div>
               </div>
 
-              {/* Language Selector + Close */}
+              {/* Language Selector (English & Hindi) + Close */}
               <div className="flex items-center space-x-2">
                 <div className="flex bg-slate-800 rounded-lg p-0.5 text-xs font-semibold">
                   <button
                     onClick={() => handleGenerateActionPack("en")}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${
-                      actionPackLanguage === "en" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                    className={`px-3 py-1 rounded-md transition-colors ${
+                      actionPackLanguage === "en" ? "bg-blue-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
                     }`}
                   >
                     English
                   </button>
                   <button
                     onClick={() => handleGenerateActionPack("hi")}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${
-                      actionPackLanguage === "hi" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                    className={`px-3 py-1 rounded-md transition-colors ${
+                      actionPackLanguage === "hi" ? "bg-blue-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
                     }`}
                   >
                     हिन्दी
-                  </button>
-                  <button
-                    onClick={() => handleGenerateActionPack("gu")}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${
-                      actionPackLanguage === "gu" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    ગુજરાતી
                   </button>
                 </div>
                 <button
@@ -1725,7 +1726,7 @@ export default function AnalyzePage({ params }: PageProps) {
                       : "border-transparent text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  1. Plain Summary
+                  {actionPackLanguage === "hi" ? "1. सरल सारांश (Summary)" : "1. Plain Summary"}
                 </button>
                 <button
                   onClick={() => setActionPackTab("checklist")}
@@ -1735,7 +1736,7 @@ export default function AnalyzePage({ params }: PageProps) {
                       : "border-transparent text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  2. Obligations Checklist
+                  {actionPackLanguage === "hi" ? "2. देयता चेकलिस्ट (Checklist)" : "2. Obligations Checklist"}
                 </button>
                 <button
                   onClick={() => setActionPackTab("lawyer")}
@@ -1745,7 +1746,7 @@ export default function AnalyzePage({ params }: PageProps) {
                       : "border-transparent text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  3. Questions For Lawyer
+                  {actionPackLanguage === "hi" ? "3. वकील के लिए प्रश्न (Lawyer Qs)" : "3. Questions For Lawyer"}
                 </button>
                 <button
                   onClick={() => setActionPackTab("email")}
@@ -1755,7 +1756,7 @@ export default function AnalyzePage({ params }: PageProps) {
                       : "border-transparent text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  4. Negotiation Email
+                  {actionPackLanguage === "hi" ? "4. बातचीत ईमेल (Email)" : "4. Negotiation Email"}
                 </button>
               </div>
 

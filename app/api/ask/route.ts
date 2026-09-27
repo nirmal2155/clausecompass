@@ -61,21 +61,59 @@ export async function POST(req: NextRequest) {
         };
       }
 
-      // Check for lock-in / vacate question
-      if (qLower.includes("4 mahine") || qLower.includes("leave") || qLower.includes("vacate") || qLower.includes("lock-in") || qLower.includes("chhod")) {
-        const lockInClause = allClauses.find((c: any) => c.number === "8" || c.text.toLowerCase().includes("lock-in"));
-        return {
-          answer: "If you vacate after 4 months (during the 6-month lock-in period), Clause 8 states that the entire security deposit of Rs. 4,50,000 will be forfeited by the landlord, and you will remain liable to pay rent for the remaining 2 months of the lock-in period. Under Section 74 of the Indian Contract Act 1872, however, Indian courts generally allow landlords to recover only actual proven damages rather than imposing an unconscionable double penalty.",
-          answerFound: true,
-          citations: lockInClause
-            ? [{ clauseId: lockInClause.id, quotedSpan: "strict lock-in period of 6 months", verified: true }]
-            : [],
-          statuteRefs: [
-            { act: "Indian Contract Act, 1872", section: "Section 74", relevance: "Prohibits extortionate penalties beyond reasonable compensation" },
-            { act: "Model Tenancy Act, 2021", section: "Section 22", relevance: "Notice periods and early exit" },
-          ],
-          groundingType: "document",
-        };
+      // Check for exit / resignation / leave / vacate question
+      const isExitQuestion =
+        qLower.includes("4 mahine") ||
+        qLower.includes("leave") ||
+        qLower.includes("vacate") ||
+        qLower.includes("resign") ||
+        qLower.includes("lock-in") ||
+        qLower.includes("chhod") ||
+        qLower.includes("exit") ||
+        qLower.includes("quit");
+
+      if (isExitQuestion) {
+        const exitClause =
+          allClauses.find((c: any) => {
+            const t = `${c.heading || ""} ${c.text || ""}`.toLowerCase();
+            return (
+              t.includes("lock-in") ||
+              t.includes("bond") ||
+              t.includes("training") ||
+              t.includes("resignation") ||
+              t.includes("notice") ||
+              t.includes("terminat")
+            );
+          }) || matchedClauses[0];
+
+        if (exitClause) {
+          const span = exitClause.text.slice(0, Math.min(70, exitClause.text.length)).trim();
+          const tLower = exitClause.text.toLowerCase();
+
+          let answer = `According to Clause ${exitClause.number || exitClause.heading || exitClause.id}, the agreement specifies: "${span}...".`;
+          const statuteRefs: { act: string; section: string; relevance: string }[] = [];
+
+          if (tLower.includes("bond") || tLower.includes("training") || tLower.includes("liquidated damages")) {
+            answer = `If you resign or leave early, Clause ${exitClause.number || exitClause.heading || exitClause.id} states: "${span}...". While the document seeks bond recovery, under Section 74 of the Indian Contract Act 1872, Indian courts (Niranjan Shankar Golikari, Kailash Nath) restrict employers strictly to actual, proven training expenses rather than penal bond sums.`;
+            statuteRefs.push({ act: "Indian Contract Act, 1872", section: "Section 74", relevance: "Limits damages to reasonable compensation for actual proven loss" });
+            statuteRefs.push({ act: "Indian Contract Act, 1872", section: "Section 27", relevance: "Agreements in restraint of trade are void ab initio" });
+          } else if (tLower.includes("lock-in") || tLower.includes("forfeit")) {
+            answer = `If you vacate early, Clause ${exitClause.number || exitClause.heading || exitClause.id} states: "${span}...". The agreement contemplates forfeiture or damages; however, under Section 74 of the Indian Contract Act 1872, damages are legally restricted to actual demonstrable losses rather than punitive forfeitures.`;
+            statuteRefs.push({ act: "Indian Contract Act, 1872", section: "Section 74", relevance: "Prohibits extortionate penalties beyond reasonable compensation" });
+            statuteRefs.push({ act: "Model Tenancy Act, 2021", section: "Section 22", relevance: "Notice periods and early exit guidelines" });
+          } else if (tLower.includes("non-refundable") || tLower.includes("refund")) {
+            answer = `Regarding cancellation or withdrawal, Clause ${exitClause.number || exitClause.heading || exitClause.id} states: "${span}...". Under Section 2(46) of the Consumer Protection Act 2019, arbitrary 100% non-refundable fee retention can be challenged as an unfair contract term before Consumer Commissions.`;
+            statuteRefs.push({ act: "Consumer Protection Act, 2019", section: "Section 2(46)", relevance: "Unfair contract terms imposing unreasonable detriment" });
+          }
+
+          return {
+            answer,
+            answerFound: true,
+            citations: [{ clauseId: exitClause.id, quotedSpan: span, verified: true }],
+            statuteRefs: statuteRefs.length > 0 ? statuteRefs : matchedStatutes.map((s) => ({ act: s.act, section: s.section, relevance: s.gist.slice(0, 80) })),
+            groundingType: "document",
+          };
+        }
       }
 
       // Default contextual answer based on matched clause

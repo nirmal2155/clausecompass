@@ -37,35 +37,12 @@ export async function POST(req: NextRequest) {
     const fallbackStatuteCheck = (): StatuteCheckResult => {
       const lower = clauseText.toLowerCase();
 
-      // Check lock-in / forfeiture
-      if (lower.includes("lock-in") || lower.includes("forfeit")) {
+      // 1. Check non-compete / restraint of trade (ICA Sec 27)
+      if (lower.includes("non-compete") || lower.includes("restrain") || lower.includes("competing commercial")) {
         return {
           verdict: "review_recommended",
           explanation:
-            "This clause imposes an automatic 6-month lock-in with total deposit forfeiture and liability for remaining rent. Section 74 of the Indian Contract Act limits damages to reasonable compensation rather than punitive forfeitures, and Model Tenancy Act principles favor standard 30-to-60 day notice exits. Statutes change and apply differently to different facts. A lawyer can confirm how this applies to you.",
-          citations: [
-            {
-              act: "Indian Contract Act, 1872",
-              section: "Section 74",
-              gist: "party complaining is entitled to receive reasonable compensation not exceeding amount so named",
-            },
-            {
-              act: "Model Tenancy Act, 2021",
-              section: "Section 22",
-              gist: "Notice to terminate tenancy must be served in accordance with the tenancy agreement",
-            },
-          ],
-          whatToAsk:
-            "Ask your lawyer: 'Can the landlord legally forfeit the entire Rs. 4.5 lakh deposit if I vacate early due to a job transfer, or does Indian law limit them to actual incurred rent loss?'",
-        };
-      }
-
-      // Check non-compete
-      if (lower.includes("non-compete") || lower.includes("restrain")) {
-        return {
-          verdict: "review_recommended",
-          explanation:
-            "This clause restrains you from practicing your trade or profession after leaving employment. Under Section 27 of the Indian Contract Act 1872, agreements in restraint of trade are void. Indian Supreme Court precedent consistently treats post-termination restrictions as unenforceable. Statutes change and apply differently to different facts. A lawyer can confirm how this applies to you.",
+            "This clause restrains you from practicing your trade, business, or profession after leaving employment. Under Section 27 of the Indian Contract Act 1872, agreements in restraint of trade are void ab initio. Indian Supreme Court precedent (e.g. Niranjan Shankar Golikari, Percept D'Mark) consistently treats post-termination restrictions as unenforceable.",
           citations: [
             {
               act: "Indian Contract Act, 1872",
@@ -78,21 +55,114 @@ export async function POST(req: NextRequest) {
         };
       }
 
-      // Check security deposit
-      if (lower.includes("10 months") || lower.includes("security deposit")) {
+      // 2. Check Employment Bond / Training Recovery (ICA Sec 74 & 27)
+      if (
+        (lower.includes("bond") || lower.includes("training fee") || lower.includes("training cost") || lower.includes("liquidated damages")) &&
+        (lower.includes("employ") || lower.includes("company") || lower.includes("salary") || lower.includes("resignation") || lower.includes("minimum period"))
+      ) {
+        return {
+          verdict: "review_recommended",
+          explanation:
+            "This clause mandates an employment bond or penal liquidated damages for leaving before a stipulated tenure. Under Section 74 of the Indian Contract Act 1872, Indian courts do not enforce penal bonds; recovery is strictly restricted to demonstrable, actual expenses incurred on specialized training.",
+          citations: [
+            {
+              act: "Indian Contract Act, 1872",
+              section: "Section 74",
+              gist: "Party complaining is entitled to receive reasonable compensation not exceeding amount so named as penalty.",
+            },
+            {
+              act: "Indian Contract Act, 1872",
+              section: "Section 27",
+              gist: "Restraint of lawful trade or profession is void.",
+            },
+          ],
+          whatToAsk:
+            "Ask your lawyer: 'Can the employer legally demand this bond amount without proving actual, specialized training invoices under Section 74 of the Indian Contract Act?'",
+        };
+      }
+
+      // 3. Check Consumer / Coaching Non-Refundable Fee (CPA Sec 2(46))
+      if (
+        lower.includes("coaching") || lower.includes("tuition") || lower.includes("student") ||
+        lower.includes("non-refundable") || (lower.includes("fee") && lower.includes("forfeit"))
+      ) {
+        return {
+          verdict: "review_recommended",
+          explanation:
+            "This clause imposes an absolute non-refundable forfeiture of course fees. Under Section 2(46) of the Consumer Protection Act 2019, unreasonable forfeiture clauses constitute unfair contract terms. The National Consumer Disputes Redressal Commission (NCDRC) has repeatedly held that educational and coaching institutions cannot retain full fees for unattended lectures.",
+          citations: [
+            {
+              act: "Consumer Protection Act, 2019",
+              section: "Section 2(46)",
+              gist: "Defines unfair contract terms including imposition of unreasonable charge, penalty or detriment on consumer.",
+            },
+          ],
+          whatToAsk:
+            "Ask your lawyer: 'Can the coaching institute legally forfeit 100% of my fees under Section 2(46) of the Consumer Protection Act 2019, or am I entitled to a pro-rata refund?'",
+        };
+      }
+
+      // 4. Check Unilateral Sole Arbitrator / Court Bar (ICA Sec 28 / Arbitration Act Sec 12(5))
+      if (lower.includes("sole arbitrator") || lower.includes("no court") || lower.includes("exclusive jurisdiction of the company") || lower.includes("waives any right to approach")) {
+        return {
+          verdict: "review_recommended",
+          explanation:
+            "This clause restricts dispute resolution to an arbitrator appointed unilaterally by one party or attempts to bar court access. Under Section 12(5) of the Arbitration and Conciliation Act 1996 and the Supreme Court's Perkins Eastman ruling, unilateral arbitrator appointments are ineligible. Furthermore, agreements restraining legal proceedings are void under Section 28 ICA.",
+          citations: [
+            {
+              act: "Indian Contract Act, 1872",
+              section: "Section 28",
+              gist: "Every agreement by which any party is restricted absolutely from enforcing their rights by usual legal proceedings is void.",
+            },
+            {
+              act: "Arbitration and Conciliation Act, 1996",
+              section: "Section 12(5)",
+              gist: "Persons having relationship with parties specified in Seventh Schedule ineligible to be appointed arbitrator.",
+            },
+          ],
+          whatToAsk:
+            "Ask your lawyer: 'Is this unilateral sole arbitrator appointment invalid under Section 12(5) of the Arbitration Act and Perkins Eastman precedent?'",
+        };
+      }
+
+      // 5. Check Lease Lock-in / Rent Deposit Forfeiture
+      if (lower.includes("lock-in") || (lower.includes("forfeit") && (lower.includes("deposit") || lower.includes("lessor") || lower.includes("rent")))) {
+        return {
+          verdict: "review_recommended",
+          explanation:
+            "This clause imposes an automatic lock-in with total deposit forfeiture. Section 74 of the Indian Contract Act limits damages to reasonable compensation rather than punitive forfeitures, and Model Tenancy Act principles favor standard 30-to-60 day notice exits.",
+          citations: [
+            {
+              act: "Indian Contract Act, 1872",
+              section: "Section 74",
+              gist: "Party complaining is entitled to receive reasonable compensation not exceeding amount so named.",
+            },
+            {
+              act: "Model Tenancy Act, 2021",
+              section: "Section 22",
+              gist: "Notice to terminate tenancy must be served in accordance with tenancy agreement.",
+            },
+          ],
+          whatToAsk:
+            "Ask your lawyer: 'Can the landlord legally forfeit the entire security deposit upon early exit, or does Section 74 of the Indian Contract Act restrict recovery strictly to actual rental loss?'",
+        };
+      }
+
+      // 6. Check High Security Deposit in Tenancy
+      if (lower.includes("security deposit") && (lower.includes("10 months") || lower.includes("months rent"))) {
         return {
           verdict: "unusual",
           explanation:
-            "This clause demands a 10-month rent deposit. Section 10 of the Model Tenancy Act 2021 prescribes that residential deposits shall not exceed two months' rent. While local market practice in Bangalore often asks for more, the statutory policy benchmark contemplates a maximum of 2 months. Statutes change and apply differently to different facts. A lawyer can confirm how this applies to you.",
+            "This clause demands a high security deposit. Section 10 of the Model Tenancy Act 2021 prescribes that residential security deposits shall not exceed two months' rent.",
           citations: [
             {
               act: "Model Tenancy Act, 2021",
               section: "Section 10",
-              gist: "not exceed two months rent in case of residential premises",
+              gist: "Security deposit shall not exceed two months rent in case of residential premises.",
             },
           ],
           whatToAsk:
-            "Ask your lawyer: 'Can we negotiate this down to 2-3 months citing Section 10 of the Model Tenancy Act guidelines?'",
+            "Ask your lawyer: 'Can we negotiate this security deposit down to 2-3 months citing Section 10 of the Model Tenancy Act guidelines?'",
         };
       }
 

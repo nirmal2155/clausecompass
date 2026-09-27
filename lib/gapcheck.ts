@@ -124,13 +124,15 @@ export async function detectSilenceGaps(params: {
       if (topic.key === "deposit_refund_timeline") {
         const hasRefundTimeline = /refunded\s+within\s+\d+\s+days/i.test(textLower);
         if (!hasRefundTimeline) {
+          const depMatch = textLower.match(/rs\.?\s*[\d,]+(\/-)?/i);
+          const depStr = depMatch ? depMatch[0] : "security deposit";
           return {
             key: topic.key,
             label: topic.label,
             status: "absent" as const,
             proofClauseId: null,
             proofSpan: "",
-            consequence: "No deadline is specified for returning the Rs. 4,50,000 deposit upon handover, allowing the landlord to delay return indefinitely after you vacate.",
+            consequence: `No deadline is specified for returning the ${depStr} upon handover, allowing the landlord to delay return indefinitely after you vacate.`,
             askAbout: "Ask for an explicit timeline: 'Security deposit to be refunded on the date of vacant handover, or within a maximum of 7 banking days.'",
             statuteHint: topic.statuteHint,
           };
